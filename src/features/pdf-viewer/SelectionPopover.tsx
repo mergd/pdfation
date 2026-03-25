@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Popover } from '@base-ui-components/react/popover'
 
 interface SelectionPopoverProps {
@@ -17,37 +17,40 @@ export const SelectionPopover = ({
   onQuote,
   onDismiss,
 }: SelectionPopoverProps) => {
-  const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null)
-  const prevSelection = useRef(selection)
+  const onDismissRef = useRef(onDismiss)
+  onDismissRef.current = onDismiss
 
   useEffect(() => {
-    if (selection && selection !== prevSelection.current) {
-      setAnchor({
-        x: selection.rect.left + selection.rect.width / 2,
-        y: selection.rect.top,
-      })
-    }
-    if (!selection) {
-      setAnchor(null)
-    }
-    prevSelection.current = selection
+    if (!selection) return
+
+    const scrollContainer = document.querySelector('.pdf-viewer__scroll')
+    if (!scrollContainer) return
+
+    const handleScroll = () => onDismissRef.current()
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true })
+    return () => scrollContainer.removeEventListener('scroll', handleScroll)
   }, [selection])
 
-  const virtualAnchor = anchor
-    ? {
-        getBoundingClientRect: () => ({
-          x: anchor.x,
-          y: anchor.y,
-          width: 0,
-          height: 0,
-          top: anchor.y,
-          right: anchor.x,
-          bottom: anchor.y,
-          left: anchor.x,
-          toJSON: () => {},
-        }),
-      }
-    : undefined
+  const virtualAnchor = useMemo(() => {
+    if (!selection) return undefined
+
+    const x = selection.rect.left + selection.rect.width / 2
+    const y = selection.rect.top
+
+    return {
+      getBoundingClientRect: () => ({
+        x,
+        y,
+        width: 0,
+        height: 0,
+        top: y,
+        right: x,
+        bottom: y,
+        left: x,
+        toJSON: () => {},
+      }),
+    }
+  }, [selection])
 
   return (
     <Popover.Root open={!!selection} onOpenChange={(open) => { if (!open) onDismiss() }}>
@@ -58,7 +61,7 @@ export const SelectionPopover = ({
           sideOffset={8}
           anchor={virtualAnchor}
         >
-          <Popover.Popup className="selection-popover">
+          <Popover.Popup className="selection-popover" onMouseDown={(e) => e.stopPropagation()}>
             <button
               className="selection-popover__action"
               onClick={onComment}

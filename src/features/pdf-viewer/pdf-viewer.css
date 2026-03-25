@@ -1,37 +1,16 @@
 .pdf-viewer {
-  --viewer-shell: #525659;
-  --viewer-shell-border: #3b3f42;
-  --viewer-toolbar: #323639;
-  --viewer-toolbar-border: #202427;
-  --viewer-toolbar-text: #f1f3f4;
-  --viewer-toolbar-muted: #bdc1c6;
-  --viewer-page-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.22),
-    0 10px 28px rgba(0, 0, 0, 0.18);
-  --viewer-highlight: rgba(255, 230, 116, 0.7);
-  --viewer-highlight-active: rgba(255, 196, 0, 0.82);
-  --viewer-selection: rgba(77, 144, 254, 0.34);
-  --viewer-popover-bg: #2c3136;
-  --viewer-popover-bg-strong: #23272b;
-  --viewer-popover-border: rgba(255, 255, 255, 0.08);
-  --viewer-popover-text: #f1f3f4;
-  --viewer-popover-muted: #bdc1c6;
-  --viewer-popover-hover: rgba(255, 255, 255, 0.08);
-  --viewer-action: #8ab4f8;
-  --viewer-action-hover: #aecbfa;
-
   min-height: 0;
   display: grid;
   grid-template-rows: auto 1fr;
-  background: var(--viewer-shell);
-  color: var(--viewer-toolbar-text);
+  background: var(--bg);
+  color: var(--text);
 }
 
 .pdf-viewer--empty {
   place-items: center;
   text-align: center;
   padding: 3rem 2rem;
-  background: var(--viewer-shell);
+  background: var(--bg);
 }
 
 .pdf-viewer__empty-content h2 {
@@ -42,7 +21,7 @@
 
 .pdf-viewer__empty-content p {
   margin: var(--space-2) 0 0;
-  color: var(--viewer-toolbar-muted);
+  color: var(--muted);
   font-size: var(--text-sm);
 }
 
@@ -51,8 +30,8 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-4);
-  border-bottom: 1px solid var(--viewer-toolbar-border);
-  background: var(--viewer-toolbar);
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-muted);
   position: sticky;
   top: 0;
   z-index: 3;
@@ -66,13 +45,85 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--viewer-toolbar-text);
+  color: var(--text);
 }
 
 .pdf-viewer__meta {
-  color: var(--viewer-toolbar-muted);
+  color: var(--muted);
   font-size: var(--text-xs);
   white-space: nowrap;
+}
+
+.pdf-viewer__nav {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pdf-viewer__page-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 1.625rem;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--panel-inset);
+  color: var(--text);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.pdf-viewer__page-indicator:hover {
+  border-color: var(--border-strong);
+  background: var(--panel-solid);
+}
+
+.pdf-viewer__page-sep {
+  color: var(--muted);
+  margin: 0 1px;
+}
+
+.pdf-viewer__goto {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.pdf-viewer__goto-input {
+  width: 4rem;
+  height: 1.625rem;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background: var(--panel-inset);
+  color: var(--text);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+
+.pdf-viewer__goto-input::-webkit-inner-spin-button,
+.pdf-viewer__goto-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pdf-viewer__goto-go {
+  height: 1.625rem;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-xs);
+  border: none;
+  background: var(--accent);
+  color: var(--ink-inverse);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .pdf-viewer__scroll {
@@ -83,12 +134,12 @@
   justify-items: center;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 8rem),
-    var(--viewer-shell);
+    var(--bg);
 }
 
 .pdf-viewer__loading {
   padding: 2rem;
-  color: var(--viewer-toolbar-muted);
+  color: var(--muted);
   font-size: var(--text-sm);
 }
 
@@ -101,7 +152,7 @@
 }
 
 .pdf-page-card__label {
-  color: var(--viewer-toolbar-muted);
+  color: var(--muted);
   font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
   text-align: center;
@@ -110,10 +161,10 @@
 
 .pdf-page-card__surface {
   position: relative;
-  background: #fff;
+  background: var(--surface-page);
   border-radius: 2px;
   overflow: hidden;
-  box-shadow: var(--viewer-page-shadow);
+  box-shadow: var(--shadow-card);
   max-width: 100%;
 }
 
@@ -159,20 +210,23 @@
 .pdf-highlight {
   position: absolute;
   background: var(--viewer-highlight);
-  border-radius: 2px;
+  border-radius: 3px;
   pointer-events: auto;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
   mix-blend-mode: multiply;
 }
 
 .pdf-highlight:hover {
   background: var(--viewer-highlight-active);
+  box-shadow: 0 0 0 1px rgba(166, 121, 0, 0.5);
 }
 
 .pdf-highlight--active {
   background: var(--viewer-highlight-active);
-  box-shadow: 0 0 0 1px rgba(166, 121, 0, 0.7);
+  box-shadow: 0 0 0 2px rgba(166, 121, 0, 0.7);
 }
 
 /* ─── Selection popover ─── */
@@ -183,9 +237,9 @@
   gap: 0;
   padding: 2px;
   border-radius: 6px;
-  background: var(--viewer-popover-bg);
-  border: 1px solid var(--viewer-popover-border);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
   z-index: 100;
   animation: popover-in 120ms ease;
 }
@@ -205,22 +259,24 @@
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: var(--viewer-popover-text);
+  color: var(--text);
   font-size: var(--text-xs);
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .selection-popover__action:hover {
-  background: var(--viewer-popover-hover);
-  color: var(--viewer-action-hover);
+  background: var(--border);
+  color: var(--accent-strong);
 }
 
 .selection-popover__divider {
   width: 1px;
   height: 16px;
-  background: var(--viewer-popover-border);
+  background: var(--border);
   flex-shrink: 0;
 }

@@ -121,6 +121,28 @@ export const getThreadsByDocumentId = async (documentId: string) => {
   return threads.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
 }
 
+export const deleteDocument = async (documentId: string): Promise<void> => {
+  const database = await getDatabase()
+  const tx = database.transaction(['documents', 'threads', 'settings'], 'readwrite')
+
+  await tx.objectStore('documents').delete(documentId)
+
+  const threads = await tx.objectStore('threads').index('by-document').getAllKeys(documentId)
+  for (const key of threads) {
+    await tx.objectStore('threads').delete(key)
+  }
+
+  const settingsRecord = await tx.objectStore('settings').get('app')
+  if (settingsRecord?.value.activeDocumentId === documentId) {
+    await tx.objectStore('settings').put({
+      key: 'app',
+      value: { ...settingsRecord.value, activeDocumentId: null },
+    })
+  }
+
+  await tx.done
+}
+
 export const getOrCreateGlobalThread = async (documentId: string): Promise<AppThread> => {
   const database = await getDatabase()
   const existing = await database.get('threads', `global:${documentId}`)
@@ -142,6 +164,24 @@ export const getOrCreateGlobalThread = async (documentId: string): Promise<AppTh
   await database.put('threads', globalThread)
 
   return globalThread
+}
+
+export interface DocumentWorkspace {
+  document: AppDocument
+  settings: AppSettings
+  threads: AppThread[]
+}
+
+export const getDocumentWorkspace = async (documentId: string): Promise<DocumentWorkspace | null> => {
+  const settings = await getSettings()
+  const document = await getDocument(documentId)
+
+  if (!document) return null
+
+  await getOrCreateGlobalThread(documentId)
+  const threads = await getThreadsByDocumentId(documentId)
+
+  return { document, settings, threads }
 }
 
 export interface AppBootstrap {

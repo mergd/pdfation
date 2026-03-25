@@ -1,0 +1,229 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
+
+import type { AppDocument } from '../../../shared/contracts'
+import {
+  type AppBootstrap,
+  deleteDocument,
+  getAppBootstrap,
+  saveDocument,
+  updateSettings,
+} from '../../lib/storage/db'
+import { extractDocumentFromFile } from '../../lib/pdf/extract-document'
+import { loadDemoPdfIfNeeded } from '../../lib/pdf/load-demo'
+import { PdfThumbnail } from './PdfThumbnail'
+
+import './library.css'
+
+const formatBytes = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+
+export const LibraryPage = () => {
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const dragCounter = useRef(0)
+
+  const { data: bootstrap } = useQuery({
+    queryKey: ['app-bootstrap'],
+    queryFn: getAppBootstrap,
+  })
+
+  useEffect(() => {
+    if (!bootstrap || bootstrap.documents.length > 0) return
+
+    loadDemoPdfIfNeeded().then((result) => {
+      if (!result) return
+      queryClient.setQueryData<AppBootstrap | undefined>(['app-bootstrap'], () => ({
+        activeDocument: result.document,
+        documents: [result.document],
+        settings: result.settings,
+        threads: [result.globalThread],
+      }))
+    })
+  }, [bootstrap])
+
+  const documents = bootstrap?.documents ?? []
+  const totalSize = documents.reduce((sum, d) => sum + d.blob.size, 0)
+
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const doc = await extractDocumentFromFile(file)
+      await saveDocument(doc)
+      await updateSettings({ activeDocumentId: doc.id })
+      return doc
+    },
+    onSuccess: (doc) => {
+      queryClient.invalidateQueries({ queryKey: ['app-bootstrap'] })
+      navigate({ to: '/doc/$id', params: { id: doc.id } })
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteDocument,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['app-bootstrap'] })
+      setConfirmingId(null)
+    },
+  })
+
+  const handleOpen = async (doc: AppDocument) => {
+    await updateSettings({ activeDocumentId: doc.id })
+    queryClient.setQueryData<AppBootstrap | undefined>(['app-bootstrap'], (c) =>
+      c ? { ...c, activeDocument: doc, settings: { ...c.settings, activeDocumentId: doc.id } } : c,
+    )
+    navigate({ to: '/doc/$id', params: { id: doc.id } })
+  }
+
+  const handleDelete = (docId: string) => {
+    if (confirmingId === docId) {
+      deleteMutation.mutate(docId)
+    } else {
+      setConfirmingId(docId)
+    }
+  }
+
+  const handleUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    uploadMutation.mutate(file)
+    event.target.value = ''
+  }
+
+  const handleFileDrop = useCallback(
+    (file: File) => {
+      if (file.type !== 'application/pdf') return
+      uploadMutation.mutate(file)
+    },
+    [uploadMutation],
+  )
+
+  const onDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    dragCounter.current += 1
+    if (dragCounter.current === 1) setDragging(true)
+  }, [])
+
+  const onDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    dragCounter.current -= 1
+    if (dragCounter.current === 0) setDragging(false)
+  }, [])
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+  }, [])
+
+  const onDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      dragCounter.current = 0
+      setDragging(false)
+      const file = e.dataTransfer.files[0]
+      if (file) handleFileDrop(file)
+    },
+    [handleFileDrop],
+  )
+
+  return (
+    <main
+      className={`library ${dragging ? 'library--dragging' : ''}`}
+      onDragEnter={onDragEnter}
+      onDragLeave={onDragLeave}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+    >
+      <header className="library__header">
+        <div>
+          <h1 className="library__title">pdfation</h1>
+          <p className="library__subtitle">
+            {documents.length} {documents.length === 1 ? 'document' : 'documents'}
+            {documents.length > 0 && <> &middot; {formatBytes(totalSize)} stored</>}
+          </p>
+        </div>
+        <label className="btn btn-primary library__upload">
+          <input accept="application/pdf" onChange={handleUpload} type="file" />
+          {uploadMutation.isPending ? 'Importing…' : 'Upload PDF'}
+        </label>
+      </header>
+
+      {documents.length === 0 ? (
+        <div className="library__empty">
+          <div className="library__empty-icon">
+            <EmptyIcon />
+          </div>
+          <h2>No documents yet</h2>
+          <p>Upload a PDF to get started with highlighting, commenting, and AI chat.</p>
+          <label className="btn btn-primary">
+            <input accept="application/pdf" onChange={handleUpload} type="file" />
+            Upload your first PDF
+          </label>
+        </div>
+      ) : (
+        <div className="library__grid">
+          {documents
+            .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
+            .map((doc) => {
+              const isConfirming = confirmingId === doc.id
+
+              return (
+                <div key={doc.id} className="library__card">
+                  <button
+                    className="library__card-link"
+                    onClick={() => handleOpen(doc)}
+                    type="button"
+                  >
+                    <div className="library__card-thumb">
+                      <PdfThumbnail blob={doc.blob} />
+                    </div>
+                    <div className="library__card-overlay">
+                      <span className="library__card-name">{doc.name}</span>
+                      <span className="library__card-meta">
+                        {doc.pageCount} pg &middot; {formatBytes(doc.blob.size)}
+                      </span>
+                    </div>
+                  </button>
+
+                  <button
+                    className={`library__card-delete ${isConfirming ? 'library__card-delete--confirm' : ''}`}
+                    onClick={() => handleDelete(doc.id)}
+                    onBlur={() => setConfirmingId(null)}
+                    type="button"
+                    title={isConfirming ? 'Click again to confirm' : 'Delete document'}
+                  >
+                    {isConfirming ? 'Delete?' : <TrashIcon />}
+                  </button>
+                </div>
+              )
+            })}
+        </div>
+      )}
+    </main>
+  )
+}
+
+const EmptyIcon = () => (
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+  </svg>
+)
+
+const TrashIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </svg>
+)

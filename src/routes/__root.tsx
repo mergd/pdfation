@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { useState } from 'react'
+import { Agentation } from 'agentation'
 import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
@@ -48,6 +49,7 @@ function RootComponent() {
     <RootDocument>
       <QueryClientProvider client={queryClient}>
         <Outlet />
+        {import.meta.env.DEV ? <Agentation /> : null}
       </QueryClientProvider>
     </RootDocument>
   )

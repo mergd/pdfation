@@ -29,6 +29,11 @@
   min-width: 0;
 }
 
+.workspace__brand-link {
+  text-decoration: none;
+  color: inherit;
+}
+
 .workspace__brand h1 {
   margin: 0;
   font-size: var(--text-lg);
@@ -53,6 +58,15 @@
 
 .workspace__actions input[type="file"] {
   display: none;
+}
+
+.workspace__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--muted);
+  font-size: var(--text-base);
 }
 
 @media (max-width: 960px) {

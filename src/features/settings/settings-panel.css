@@ -1,39 +1,95 @@
-.settings-panel {
-  padding: var(--space-3);
-  border-top: 1px solid var(--border);
-  display: grid;
-  gap: var(--space-3);
+/* ─── Trigger button ─── */
+
+.settings-trigger {
+  position: relative;
 }
 
-.settings-panel__row {
+.settings-trigger__dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+}
+
+.settings-trigger__dot--active {
+  background: #34a853;
+}
+
+.settings-trigger__dot--warn {
+  background: #fbbc04;
+}
+
+/* ─── Popover ─── */
+
+.settings-popover {
+  width: 18rem;
+  border-radius: var(--radius-md);
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  animation: settings-in 120ms ease;
+  overflow: hidden;
+}
+
+@keyframes settings-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.settings-popover__header {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-inset);
 }
 
-.settings-panel__label {
+.settings-popover__title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.settings-popover__body {
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* ─── Field ─── */
+
+.settings-popover__field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.settings-popover__label {
   font-size: var(--text-xs);
   font-weight: 500;
   color: var(--muted);
-  white-space: nowrap;
-  min-width: 3.5rem;
 }
 
-.settings-panel__radios {
-  display: flex;
-  gap: var(--space-3);
+.settings-popover__radios {
+  display: grid;
+  gap: var(--space-1);
 }
 
-.settings-panel__radio {
+.settings-popover__radio {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   cursor: pointer;
+  padding: var(--space-1) 0;
 }
 
-.settings-panel__radio-root {
+.settings-popover__radio-root {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -44,13 +100,14 @@
   background: var(--panel-solid);
   transition: border-color var(--transition-fast);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
-.settings-panel__radio-root[data-checked] {
+.settings-popover__radio-root[data-checked] {
   border-color: var(--accent);
 }
 
-.settings-panel__radio-indicator {
+.settings-popover__radio-indicator {
   width: 6px;
   height: 6px;
   border-radius: var(--radius-full);
@@ -60,13 +117,19 @@
   transition: all var(--transition-fast);
 }
 
-.settings-panel__radio-indicator[data-checked] {
+.settings-popover__radio-indicator[data-checked] {
   opacity: 1;
   transform: scale(1);
 }
 
-.settings-panel__key-input {
-  flex: 1;
-  min-width: 0;
-  font-size: var(--text-xs);
+.settings-popover__input {
+  width: 100%;
+  font-size: var(--text-sm);
+}
+
+.settings-popover__hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
 }

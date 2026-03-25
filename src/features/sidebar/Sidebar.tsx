@@ -1,9 +1,8 @@
 import { Tabs } from '@base-ui-components/react/tabs'
 
-import type { AppSettings, AppThread, ProviderMode } from '../../../shared/contracts'
+import type { AppThread } from '../../../shared/contracts'
 import { ChatPanel } from './ChatPanel'
 import { CommentList } from './CommentList'
-import { SettingsPanel } from '../settings/SettingsPanel'
 
 import './sidebar.css'
 
@@ -20,12 +19,9 @@ interface SidebarProps {
   focusedThread: AppThread | null
   isSending: boolean
   quotedText: string | null
-  settings: AppSettings | null
   onSendMessage: (value: string) => void
   onSendCommentMessage: (threadId: string, value: string) => void
   onSelectThread: (threadId: string) => void
-  onChangeProviderMode: (mode: ProviderMode) => void
-  onChangeKey: (value: string) => void
   onClearQuote: () => void
 }
 
@@ -40,12 +36,9 @@ export const Sidebar = ({
   focusedThread,
   isSending,
   quotedText,
-  settings,
   onSendMessage,
   onSendCommentMessage,
   onSelectThread,
-  onChangeProviderMode,
-  onChangeKey,
   onClearQuote,
 }: SidebarProps) => {
   return (
@@ -92,13 +85,6 @@ export const Sidebar = ({
           />
         )}
 
-        {settings && (
-          <SettingsPanel
-            settings={settings}
-            onChangeProviderMode={onChangeProviderMode}
-            onChangeKey={onChangeKey}
-          />
-        )}
       </div>
     </aside>
   )
