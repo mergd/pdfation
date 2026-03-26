@@ -9,6 +9,7 @@ import './settings-panel.css'
 
 interface SettingsDialogProps {
   settings: AppSettings
+  onChangeUsername: (value: string) => void
   onChangeProviderMode: (mode: ProviderMode) => void
   onChangeModel: (model: string) => void
   onChangeOpenRouterKey: (value: string) => void
@@ -17,6 +18,7 @@ interface SettingsDialogProps {
 
 export const SettingsDialog = ({
   settings,
+  onChangeUsername,
   onChangeProviderMode,
   onChangeModel,
   onChangeOpenRouterKey,
@@ -52,6 +54,23 @@ export const SettingsDialog = ({
           </header>
 
           <div className="settings-dialog__body">
+            <div className="settings-dialog__field">
+              <label className="settings-dialog__label" htmlFor="username">
+                Username
+              </label>
+              <input
+                id="username"
+                className="settings-dialog__input"
+                onChange={(event) => onChangeUsername(event.target.value)}
+                placeholder="Optional display name"
+                type="text"
+                value={settings.username}
+              />
+              <p className="settings-dialog__hint">
+                Used when you share a document or leave messages on imported copies.
+              </p>
+            </div>
+
             <div className="settings-dialog__field">
               <span className="settings-dialog__label">AI Provider</span>
               <RadioGroup

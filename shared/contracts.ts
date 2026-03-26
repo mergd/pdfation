@@ -40,6 +40,8 @@ export interface AppMessage {
   content: string
   createdAt: string
   sourcePages: number[]
+  authorDeviceId?: string | null
+  authorName?: string | null
 }
 
 export interface AppThread {
@@ -59,6 +61,8 @@ export interface AppSettings {
   model: string
   providerMode: ProviderMode
   sessionId: string
+  deviceId: string
+  username: string
 }
 
 export interface SourceReference {

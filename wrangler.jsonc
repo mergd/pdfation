@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "pdfation",
   "account_id": "24d3bab86b3b44170195747d8f330d4e",
-  "compatibility_date": "2026-03-25",
+  "compatibility_date": "2026-03-17",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
   "observability": {
@@ -11,8 +11,26 @@
 
   "kv_namespaces": [
     {
-      "binding": "RATE_LIMIT",
-      "id": "65736b47c6a0405fa211bdfed810b19e"
+      "binding": "SHARES",
+      "id": "35e3fb9c4bcb4742b9bda8fcaa01d680"
+    }
+  ],
+
+  "ratelimits": [
+    {
+      "name": "SHARED_AI_RATE_LIMIT",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 5,
+        "period": 60
+      }
+    }
+  ],
+
+  "r2_buckets": [
+    {
+      "binding": "SHARE_BUNDLES",
+      "bucket_name": "pdfation-shares"
     }
   ],
 

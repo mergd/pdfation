@@ -80,7 +80,7 @@ export const ChatPanel = ({
           <div key={msg.id} className={`chat-msg chat-msg--${msg.role}`}>
             <div className="chat-msg__header">
               <span className="chat-msg__role">
-                {msg.role === "assistant" ? "AI" : "You"}
+                {msg.role === "assistant" ? "AI" : msg.authorName?.trim() || "You"}
               </span>
               <time className="chat-msg__time">
                 {new Date(msg.createdAt).toLocaleTimeString([], {

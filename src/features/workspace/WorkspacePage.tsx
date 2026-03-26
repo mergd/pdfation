@@ -12,6 +12,7 @@ import { PdfViewer } from "../pdf-viewer/PdfViewer";
 import { CommentPopover } from "../pdf-viewer/CommentPopover";
 import { Sidebar } from "../sidebar/Sidebar";
 import { SettingsDialog } from "../settings/SettingsPanel";
+import { ShareDialog } from "../share/ShareDialog";
 import { defaultModelForProvider } from "../../../shared/models";
 import { buildDocumentContext } from "../../lib/ai/context";
 import { sendChatRequest } from "../../lib/ai/chat-client";
@@ -42,12 +43,14 @@ const createMessage = (
   role: AppMessage["role"],
   content: string,
   sourcePages: number[] = [],
+  author?: Pick<AppMessage, "authorDeviceId" | "authorName">,
 ): AppMessage => ({
   id: crypto.randomUUID(),
   role,
   content,
   createdAt: new Date().toISOString(),
   sourcePages,
+  ...(author ?? {}),
 });
 
 export const WorkspacePage = () => {
@@ -147,7 +150,10 @@ export const WorkspacePage = () => {
     if (settings.providerMode === "openai" && !settings.byoOpenAiKey.trim())
       return;
 
-    const userMessage = createMessage("user", value);
+    const userMessage = createMessage("user", value, [], {
+      authorDeviceId: settings.deviceId,
+      authorName: settings.username.trim() || null,
+    });
     const optimistic: AppThread = {
       ...thread,
       messages: [...thread.messages, userMessage],
@@ -490,6 +496,12 @@ export const WorkspacePage = () => {
           {settings && (
             <SettingsDialog
               settings={settings}
+              onChangeUsername={(value) => {
+                updateWorkspace((c) =>
+                  c ? { ...c, settings: { ...c.settings, username: value } } : c,
+                );
+                void persistSettings({ username: value });
+              }}
               onChangeProviderMode={(mode) => {
                 const model = defaultModelForProvider(mode);
                 updateWorkspace((c) =>
@@ -521,6 +533,15 @@ export const WorkspacePage = () => {
               }}
             />
           )}
+
+          {activeDocument && settings ? (
+            <ShareDialog
+              document={activeDocument}
+              threads={threads}
+              deviceId={settings.deviceId}
+              username={settings.username}
+            />
+          ) : null}
 
           <button
             className="btn btn-ghost"

@@ -147,7 +147,7 @@ export const CommentPopover = ({
             className={`comment-popover__msg comment-popover__msg--${msg.role}`}
           >
             <span className="comment-popover__msg-role">
-              {msg.role === "assistant" ? "AI" : "You"}
+              {msg.role === "assistant" ? "AI" : msg.authorName?.trim() || "You"}
             </span>
             <p>{msg.content}</p>
           </div>

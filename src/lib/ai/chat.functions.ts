@@ -3,7 +3,7 @@ import { setResponseStatus } from '@tanstack/react-start/server'
 import { z } from 'zod'
 
 import { createOpenRouterReply, createOpenAiReply } from './chat.server'
-import { beginRateLimitedRequest, endRateLimitedRequest } from '../server/rate-limit.server'
+import { beginRateLimitedRequest } from '../server/rate-limit.server'
 
 const messageSchema = z.object({
   id: z.string(),
@@ -73,9 +73,5 @@ export const sendChatRequest = createServerFn({ method: 'POST' })
 
       setResponseStatus(isRateLimited ? 429 : 500)
       throw new Error(isRateLimited ? message.slice(4).trim() : message)
-    } finally {
-      if (shouldThrottle) {
-        endRateLimitedRequest(data.sessionId)
-      }
     }
   })

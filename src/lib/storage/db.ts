@@ -37,6 +37,8 @@ const defaultSettings = (): AppSettings => ({
   model: DEFAULT_OPENROUTER_MODEL,
   providerMode: 'shared',
   sessionId: crypto.randomUUID(),
+  deviceId: crypto.randomUUID(),
+  username: '',
 })
 
 let dbPromise: Promise<IDBPDatabase<PdfCoworkerDB>> | null = null
