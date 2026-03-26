@@ -104,6 +104,13 @@ export const getDocument = async (documentId: string) => {
 
 export const listDocuments = async () => {
   const database = await getDatabase()
+  const all = await database.getAll('documents')
+
+  return all.filter((doc) => !doc.hidden)
+}
+
+export const listAllDocuments = async () => {
+  const database = await getDatabase()
 
   return database.getAll('documents')
 }
@@ -125,7 +132,12 @@ export const deleteDocument = async (documentId: string): Promise<void> => {
   const database = await getDatabase()
   const tx = database.transaction(['documents', 'threads', 'settings'], 'readwrite')
 
-  await tx.objectStore('documents').delete(documentId)
+  const doc = await tx.objectStore('documents').get(documentId)
+  if (doc?.isDemo) {
+    await tx.objectStore('documents').put({ ...doc, hidden: true })
+  } else {
+    await tx.objectStore('documents').delete(documentId)
+  }
 
   const threads = await tx.objectStore('threads').index('by-document').getAllKeys(documentId)
   for (const key of threads) {

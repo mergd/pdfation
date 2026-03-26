@@ -4,6 +4,7 @@
   grid-template-rows: auto 1fr;
   background: var(--bg);
   color: var(--text);
+  view-transition-name: viewer-content;
 }
 
 .pdf-viewer--empty {
@@ -164,6 +165,7 @@
 }
 
 .pdf-viewer__scroll {
+  position: relative;
   overflow: auto;
   padding: 1.5rem var(--space-4) 2rem;
   display: grid;
@@ -192,6 +194,21 @@
   width: min(100%, 800px);
   display: grid;
   gap: 0.5rem;
+  scroll-margin-top: 1rem;
+}
+
+.pdf-viewer__scroll > .pdf-page-card:first-child > .pdf-page-card__surface,
+.pdf-viewer__skeleton > .pdf-page-card:first-child > .pdf-page-card__surface {
+  view-transition-name: pdf-hero;
+}
+
+.pdf-page-card--flash .pdf-page-card__surface {
+  animation: page-flash 1.2s ease;
+}
+
+@keyframes page-flash {
+  0%, 100% { box-shadow: var(--shadow-card); }
+  20%, 50% { box-shadow: var(--shadow-card), 0 0 0 3px var(--accent), 0 0 16px rgba(138, 180, 248, 0.25); }
 }
 
 .pdf-page-card__label {
@@ -385,13 +402,12 @@
   border: 1px solid var(--border);
   box-shadow: var(--shadow-md);
   z-index: 100;
-  animation: popover-in 120ms ease;
+  animation: selection-popover-in 120ms ease;
 }
 
-@keyframes popover-in {
+@keyframes selection-popover-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
   }
 }
 

@@ -23,6 +23,8 @@ export interface AppDocument {
   uploadedAt: string
   pages: DocumentPage[]
   chunks: DocumentChunk[]
+  isDemo?: boolean
+  hidden?: boolean
 }
 
 export interface ThreadAnchor {

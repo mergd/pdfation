@@ -1,14 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { AppThread } from "../../../shared/contracts";
+import type { Quote } from "../workspace/WorkspacePage";
+import { MessageBody } from "./MessageBody";
+
+const QUOTE_COLORS = [
+  { bg: "rgba(138, 180, 248, 0.14)", border: "#8ab4f8", text: "#aecbfa" },
+  { bg: "rgba(129, 201, 149, 0.14)", border: "#81c995", text: "#a8dab5" },
+  { bg: "rgba(252, 173, 112, 0.14)", border: "#fcad70", text: "#fcc89b" },
+  { bg: "rgba(201, 143, 255, 0.14)", border: "#c98fff", text: "#d8b4fe" },
+  { bg: "rgba(255, 138, 128, 0.14)", border: "#ff8a80", text: "#ffab91" },
+];
 
 interface ChatPanelProps {
   thread: AppThread | null;
   isSending: boolean;
-  quotes: string[];
+  quotes: Quote[];
   onSendMessage: (value: string) => void;
   onRemoveQuote: (index: number) => void;
   onClearQuotes: () => void;
+  onQuoteClick: (pageNumber: number) => void;
+  onPageClick: (pageNumber: number) => void;
 }
 
 export const ChatPanel = ({
@@ -18,6 +30,8 @@ export const ChatPanel = ({
   onSendMessage,
   onRemoveQuote,
   onClearQuotes,
+  onQuoteClick,
+  onPageClick,
 }: ChatPanelProps) => {
   const [draft, setDraft] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -39,7 +53,9 @@ export const ChatPanel = ({
     const value = draft.trim();
     if ((!value && quotes.length === 0) || isSending) return;
 
-    const quoteParts = quotes.map((q) => `> ${q}`).join("\n\n");
+    const quoteParts = quotes
+      .map((q) => `> [p.${q.pageNumber}] ${q.text}`)
+      .join("\n\n");
     const fullMessage = quoteParts
       ? value
         ? `${quoteParts}\n\n${value}`
@@ -73,13 +89,21 @@ export const ChatPanel = ({
                 })}
               </time>
             </div>
-            <p className="chat-msg__body">{msg.content}</p>
+            <p className="chat-msg__body">
+              <MessageBody content={msg.content} onPageClick={onPageClick} />
+            </p>
             {msg.sourcePages.length > 0 && (
               <div className="chat-msg__pages">
                 {msg.sourcePages.map((p) => (
-                  <span key={p} className="badge badge-muted">
+                  <button
+                    key={p}
+                    type="button"
+                    className="page-ref page-ref--muted"
+                    onClick={() => onPageClick(p)}
+                    title={`Go to page ${p}`}
+                  >
                     p.{p}
-                  </span>
+                  </button>
                 ))}
               </div>
             )}
@@ -92,18 +116,55 @@ export const ChatPanel = ({
         <div className="chat-panel__input-box">
           {quotes.length > 0 && (
             <div className="chat-panel__quotes">
-              {quotes.map((q, i) => (
-                <div key={i} className="chat-panel__quote">
-                  <span className="chat-panel__quote-text">"{q}"</span>
+              {quotes.length > 1 && (
+                <div className="chat-panel__quotes-header">
+                  <span className="chat-panel__quotes-count">{quotes.length} quotes</span>
                   <button
                     type="button"
-                    onClick={() => onRemoveQuote(i)}
-                    className="chat-panel__quote-dismiss"
+                    className="chat-panel__quotes-clear"
+                    onClick={onClearQuotes}
                   >
-                    <CloseIcon />
+                    Clear all
                   </button>
                 </div>
-              ))}
+              )}
+              {quotes.map((q, i) => {
+                const color = QUOTE_COLORS[i % QUOTE_COLORS.length];
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    className="chat-panel__quote"
+                    style={{
+                      background: color.bg,
+                      borderLeftColor: color.border,
+                      color: color.text,
+                    }}
+                    onClick={() => onQuoteClick(q.pageNumber)}
+                    title={`Go to page ${q.pageNumber}`}
+                  >
+                    <span className="chat-panel__quote-page">p.{q.pageNumber}</span>
+                    <span className="chat-panel__quote-text">"{q.text}"</span>
+                    <span
+                      className="chat-panel__quote-dismiss"
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveQuote(i);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.stopPropagation();
+                          onRemoveQuote(i);
+                        }
+                      }}
+                    >
+                      <CloseIcon />
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
           <textarea
@@ -167,12 +228,12 @@ const SpinnerIcon = () => (
 
 const CloseIcon = () => (
   <svg
-    width="12"
-    height="12"
+    width="14"
+    height="14"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    strokeWidth="2"
+    strokeWidth="2.5"
     strokeLinecap="round"
     strokeLinejoin="round"
   >

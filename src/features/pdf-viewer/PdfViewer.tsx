@@ -33,7 +33,7 @@ interface PdfViewerProps {
     textPrefix: string;
     textSuffix: string;
   }) => void;
-  onQuoteInChat: (text: string) => void;
+  onQuoteInChat: (quote: { text: string; pageNumber: number }) => void;
   onSelectThread: (threadId: string) => void;
 }
 
@@ -107,7 +107,7 @@ export const PdfViewer = ({
   const handleQuote = useCallback(() => {
     const sel = selectionRef.current;
     if (!sel) return;
-    onQuoteInChat(sel.selectedText);
+    onQuoteInChat({ text: sel.selectedText, pageNumber: sel.pageNumber });
     selectionRef.current = null;
     setSelection(null);
     window.getSelection()?.removeAllRanges();

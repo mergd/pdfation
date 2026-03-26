@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 
@@ -22,18 +23,13 @@ const formatBytes = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-
 export const LibraryPage = () => {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
+  const [newDocId, setNewDocId] = useState<string | null>(null)
+  const [transitioningId, setTransitioningId] = useState<string | null>(null)
   const dragCounter = useRef(0)
 
   const { data: bootstrap } = useQuery({
@@ -58,6 +54,22 @@ export const LibraryPage = () => {
   const documents = bootstrap?.documents ?? []
   const totalSize = documents.reduce((sum, d) => sum + d.blob.size, 0)
 
+  const navigateToDoc = useCallback(
+    (docId: string) => {
+      const go = () => navigate({ to: '/doc/$id', params: { id: docId } })
+
+      if (!('startViewTransition' in document)) {
+        go()
+        return
+      }
+
+      ;(document as unknown as { startViewTransition: (cb: () => void) => void }).startViewTransition(
+        () => flushSync(go),
+      )
+    },
+    [navigate],
+  )
+
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const doc = await extractDocumentFromFile(file)
@@ -66,8 +78,25 @@ export const LibraryPage = () => {
       return doc
     },
     onSuccess: (doc) => {
-      queryClient.invalidateQueries({ queryKey: ['app-bootstrap'] })
-      navigate({ to: '/doc/$id', params: { id: doc.id } })
+      queryClient.setQueryData<AppBootstrap | undefined>(['app-bootstrap'], (c) => {
+        if (!c) return c
+        return {
+          ...c,
+          documents: [doc, ...c.documents],
+          activeDocument: doc,
+          settings: { ...c.settings, activeDocumentId: doc.id },
+        }
+      })
+      setNewDocId(doc.id)
+
+      requestAnimationFrame(() => {
+        document.querySelector('.library__grid')?.scrollTo({ top: 0, behavior: 'smooth' })
+      })
+
+      setTimeout(() => {
+        flushSync(() => setTransitioningId(doc.id))
+        navigateToDoc(doc.id)
+      }, 600)
     },
   })
 
@@ -84,7 +113,8 @@ export const LibraryPage = () => {
     queryClient.setQueryData<AppBootstrap | undefined>(['app-bootstrap'], (c) =>
       c ? { ...c, activeDocument: doc, settings: { ...c.settings, activeDocumentId: doc.id } } : c,
     )
-    navigate({ to: '/doc/$id', params: { id: doc.id } })
+    flushSync(() => setTransitioningId(doc.id))
+    navigateToDoc(doc.id)
   }
 
   const handleDelete = (docId: string) => {
@@ -177,9 +207,14 @@ export const LibraryPage = () => {
             .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
             .map((doc) => {
               const isConfirming = confirmingId === doc.id
+              const isNew = newDocId === doc.id
+              const isTransitioning = transitioningId === doc.id
 
               return (
-                <div key={doc.id} className="library__card">
+                <div
+                  key={doc.id}
+                  className={`library__card${isNew ? ' library__card--new' : ''}${isTransitioning ? ' library__card--transitioning' : ''}`}
+                >
                   <button
                     className="library__card-link"
                     onClick={() => handleOpen(doc)}

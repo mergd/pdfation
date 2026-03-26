@@ -1,12 +1,12 @@
 import { extractDocumentFromFile } from './extract-document'
-import { saveDocument, getOrCreateGlobalThread, updateSettings, listDocuments } from '../storage/db'
+import { saveDocument, getOrCreateGlobalThread, updateSettings, listAllDocuments } from '../storage/db'
 
 const DEMO_URL = '/demo.pdf'
 const DEMO_NAME = 'PDFation Demo Document.pdf'
 
 export const loadDemoPdfIfNeeded = async () => {
-  const existing = await listDocuments()
-  if (existing.length > 0) return null
+  const all = await listAllDocuments()
+  if (all.length > 0) return null
 
   const response = await fetch(DEMO_URL)
   if (!response.ok) return null
@@ -15,6 +15,7 @@ export const loadDemoPdfIfNeeded = async () => {
   const file = new File([blob], DEMO_NAME, { type: 'application/pdf' })
 
   const document = await extractDocumentFromFile(file)
+  document.isDemo = true
   await saveDocument(document)
   const settings = await updateSettings({ activeDocumentId: document.id })
   const globalThread = await getOrCreateGlobalThread(document.id)

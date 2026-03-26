@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 
@@ -18,13 +19,17 @@ import {
   createChatThread,
   deleteThread,
   getDocumentWorkspace,
+  renameThread,
   saveThread,
   updateSettings,
 } from "../../lib/storage/db";
 
 import "./workspace.css";
 
-type SidebarTab = "chat" | "comments";
+export interface Quote {
+  text: string;
+  pageNumber: number;
+}
 const EMPTY_THREADS: AppThread[] = [];
 
 const replaceThread = (threads: AppThread[], next: AppThread) =>
@@ -54,13 +59,46 @@ export const WorkspacePage = () => {
     queryFn: () => getDocumentWorkspace(documentId),
   });
 
-  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
-  const [activeChatThreadId, setActiveChatThreadId] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarTab, setSidebarTab] = useState<SidebarTab>("chat");
-  const [quotes, setQuotes] = useState<string[]>([]);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1200);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
   const [popoverThreadId, setPopoverThreadId] = useState<string | null>(null);
   const [popoverAnchor, setPopoverAnchor] = useState<Element | null>(null);
+
+  const navigateBack = () => {
+    const go = () => navigate({ to: "/" });
+    if (!("startViewTransition" in document)) {
+      go();
+      return;
+    }
+    (document as unknown as { startViewTransition: (cb: () => void) => void }).startViewTransition(
+      () => flushSync(go),
+    );
+  };
+
+  const logScrollDebug = (
+    hypothesisId: string,
+    location: string,
+    message: string,
+    data: Record<string, unknown>,
+  ) => {
+    fetch("http://127.0.0.1:7846/ingest/203ce655-c596-4a08-980f-f1e7d91da1cc", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "12be06",
+      },
+      body: JSON.stringify({
+        sessionId: "12be06",
+        runId: "initial",
+        hypothesisId,
+        location,
+        message,
+        data,
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+  };
 
   const updateWorkspace = (
     updater: (c: DocumentWorkspace | null | undefined) => DocumentWorkspace | null | undefined,
@@ -76,26 +114,16 @@ export const WorkspacePage = () => {
   const settings: AppSettings | null = workspace?.settings ?? null;
   const threads: AppThread[] = workspace?.threads ?? EMPTY_THREADS;
 
-  const chatThreads = useMemo(
-    () => threads.filter((t) => t.kind === "global"),
-    [threads],
+  const resolvedThreadId =
+    activeThreadId && threads.some((t) => t.id === activeThreadId)
+      ? activeThreadId
+      : threads[0]?.id ?? null;
+
+  const activeThread = useMemo(
+    () => threads.find((t) => t.id === resolvedThreadId) ?? null,
+    [threads, resolvedThreadId],
   );
-  const resolvedChatThreadId =
-    activeChatThreadId && chatThreads.some((t) => t.id === activeChatThreadId)
-      ? activeChatThreadId
-      : chatThreads[0]?.id ?? null;
-  const activeChatThread = useMemo(
-    () => chatThreads.find((t) => t.id === resolvedChatThreadId) ?? null,
-    [chatThreads, resolvedChatThreadId],
-  );
-  const anchorThreads = useMemo(
-    () => threads.filter((t) => t.kind === "anchor"),
-    [threads],
-  );
-  const selectedThread = useMemo(
-    () => threads.find((t) => t.id === selectedThreadId) ?? null,
-    [selectedThreadId, threads],
-  );
+
   const popoverThread = useMemo(
     () => threads.find((t) => t.id === popoverThreadId) ?? null,
     [popoverThreadId, threads],
@@ -127,7 +155,6 @@ export const WorkspacePage = () => {
     updateWorkspace((c) =>
       c ? { ...c, threads: replaceThread(c.threads, optimistic) } : c,
     );
-    setSelectedThreadId(optimistic.id);
 
     try {
       const response = await sendMessageMutation.mutateAsync({
@@ -181,34 +208,41 @@ export const WorkspacePage = () => {
     }
   };
 
-  const handleSendChatMessage = async (value: string) => {
-    if (!activeChatThread) return;
-    await sendToThread(activeChatThread, value);
+  const handleSendMessage = async (value: string) => {
+    if (!activeThread) return;
+    await sendToThread(activeThread, value);
   };
 
-  const handleCreateChatThread = async () => {
+  const handleSendPopoverMessage = async (threadId: string, value: string) => {
+    const thread = threads.find((t) => t.id === threadId);
+    if (!thread) return;
+    await sendToThread(thread, value);
+  };
+
+  const handleCreateThread = async () => {
     if (!activeDocument) return;
     const thread = await createChatThread(activeDocument.id);
     updateWorkspace((c) =>
       c ? { ...c, threads: replaceThread(c.threads, thread) } : c,
     );
-    setActiveChatThreadId(thread.id);
+    setActiveThreadId(thread.id);
   };
 
-  const handleDeleteChatThread = async (threadId: string) => {
+  const handleDeleteThread = async (threadId: string) => {
     await deleteThread(threadId);
     updateWorkspace((c) =>
       c ? { ...c, threads: c.threads.filter((t) => t.id !== threadId) } : c,
     );
-    if (activeChatThreadId === threadId) {
-      setActiveChatThreadId(null);
-    }
+    if (activeThreadId === threadId) setActiveThreadId(null);
+    if (popoverThreadId === threadId) setPopoverThreadId(null);
   };
 
-  const handleSendCommentMessage = async (threadId: string, value: string) => {
-    const thread = threads.find((t) => t.id === threadId);
-    if (!thread) return;
-    await sendToThread(thread, value);
+  const handleRenameThread = async (threadId: string, title: string) => {
+    const updated = await renameThread(threadId, title);
+    if (!updated) return;
+    updateWorkspace((c) =>
+      c ? { ...c, threads: replaceThread(c.threads, updated) } : c,
+    );
   };
 
   const handleCreateComment = async (payload: {
@@ -238,7 +272,7 @@ export const WorkspacePage = () => {
     updateWorkspace((c) =>
       c ? { ...c, threads: replaceThread(c.threads, newThread) } : c,
     );
-    setSelectedThreadId(newThread.id);
+    setActiveThreadId(newThread.id);
     setPopoverThreadId(newThread.id);
   };
 
@@ -262,33 +296,139 @@ export const WorkspacePage = () => {
     requestAnimationFrame(findAnchor);
   }, [popoverThreadId]);
 
-  const handleQuoteInChat = (text: string) => {
-    setQuotes((prev) => [...prev, text]);
+  const handleQuoteInChat = (quote: Quote) => {
+    setQuotes((prev) => [...prev, quote]);
     setSidebarOpen(true);
-    setSidebarTab("chat");
   };
 
-  const handleSelectThread = (threadId: string) => {
-    setSelectedThreadId(threadId);
-    const thread = threads.find((t) => t.id === threadId);
+  const handleScrollToPage = (pageNumber: number) => {
+    const container = document.querySelector<HTMLElement>(".pdf-viewer__scroll");
+    const target = container?.querySelector<HTMLElement>(`[data-page="${pageNumber}"]`);
+    const viewerHeader = document.querySelector<HTMLElement>(".pdf-viewer__header");
+    if (!target) return;
 
-    if (thread?.kind === "anchor") {
+    const getMetrics = () => {
+      const containerRect = container?.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const activeElement =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+      return {
+        pageNumber,
+        containerScrollTop: container?.scrollTop ?? null,
+        containerClientHeight: container?.clientHeight ?? null,
+        containerScrollHeight: container?.scrollHeight ?? null,
+        containerRectTop: containerRect?.top ?? null,
+        targetOffsetTop:
+          containerRect && container
+            ? targetRect.top - containerRect.top + container.scrollTop
+            : null,
+        targetRectTop: targetRect.top,
+        targetTopWithinContainer:
+          containerRect ? targetRect.top - containerRect.top : null,
+        viewerHeaderHeight: viewerHeader?.getBoundingClientRect().height ?? null,
+        windowScrollY: window.scrollY,
+        activeElementTag: activeElement?.tagName ?? null,
+        activeElementClass: activeElement?.className ?? null,
+      };
+    };
+
+    // #region agent log
+    logScrollDebug(
+      "E",
+      "WorkspacePage.tsx:handleScrollToPage:before-scrollIntoView",
+      "Page reference clicked before viewer scroll",
+      getMetrics(),
+    );
+    // #endregion
+
+    let scrollEventCount = 0;
+    const handleContainerScroll = () => {
+      scrollEventCount += 1;
+
+      // #region agent log
+      logScrollDebug(
+        scrollEventCount === 1 ? "F" : "G",
+        `WorkspacePage.tsx:handleScrollToPage:container-scroll-${scrollEventCount}`,
+        "Viewer container scrolled after page reference click",
+        { scrollEventCount, ...getMetrics() },
+      );
+      // #endregion
+
+      if (scrollEventCount >= 2) {
+        container?.removeEventListener("scroll", handleContainerScroll);
+      }
+    };
+
+    container?.addEventListener("scroll", handleContainerScroll, { passive: true });
+
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    target.classList.add("pdf-page-card--flash");
+    setTimeout(() => target.classList.remove("pdf-page-card--flash"), 1200);
+
+    requestAnimationFrame(() => {
+      // #region agent log
+      logScrollDebug(
+        "H",
+        "WorkspacePage.tsx:handleScrollToPage:after-scrollIntoView-frame",
+        "Post-scrollIntoView frame snapshot",
+        getMetrics(),
+      );
+      // #endregion
+
+      if (scrollEventCount === 0) {
+        container?.removeEventListener("scroll", handleContainerScroll);
+      }
+    });
+  };
+
+  const handleHighlightClick = (threadId: string) => {
+    setActiveThreadId(threadId);
+
+    if (sidebarOpen) {
+      setPopoverThreadId(null);
+    } else {
       setPopoverThreadId(threadId);
     }
   };
 
   const handleExpandToSidebar = () => {
+    if (popoverThreadId) setActiveThreadId(popoverThreadId);
     setPopoverThreadId(null);
     setSidebarOpen(true);
-    setSidebarTab("comments");
   };
+
+  const closePopover = () => {
+    if (popoverThread && popoverThread.messages.length === 0) {
+      void deleteThread(popoverThread.id);
+      updateWorkspace((c) =>
+        c ? { ...c, threads: c.threads.filter((t) => t.id !== popoverThread.id) } : c,
+      );
+      if (activeThreadId === popoverThread.id) setActiveThreadId(null);
+    }
+    setPopoverThreadId(null);
+  };
+
+  // Auto-hide popover when sidebar opens showing the same thread
+  const showPopover =
+    !!popoverThread &&
+    popoverThread.kind === "anchor" &&
+    !!popoverAnchor &&
+    !(sidebarOpen && resolvedThreadId === popoverThreadId);
 
   if (workspaceQuery.isLoading) {
     return (
       <main className="workspace">
         <header className="workspace__toolbar">
           <div className="workspace__brand">
-            <Link to="/" className="workspace__brand-link">
+            <Link
+              to="/"
+              className="workspace__brand-link"
+              onClick={(e) => {
+                e.preventDefault();
+                navigateBack();
+              }}
+            >
               <h1>pdfation</h1>
             </Link>
             <div className="workspace__doc-name-skeleton" aria-hidden="true" />
@@ -305,7 +445,7 @@ export const WorkspacePage = () => {
           selectedThreadId={null}
           threads={EMPTY_THREADS}
           onCreateComment={() => undefined}
-          onQuoteInChat={() => undefined}
+          onQuoteInChat={() => {}}
           onSelectThread={() => undefined}
         />
       </main>
@@ -323,7 +463,14 @@ export const WorkspacePage = () => {
     >
       <header className="workspace__toolbar">
         <div className="workspace__brand">
-          <Link to="/" className="workspace__brand-link">
+          <Link
+            to="/"
+            className="workspace__brand-link"
+            onClick={(e) => {
+              e.preventDefault();
+              navigateBack();
+            }}
+          >
             <h1>pdfation</h1>
           </Link>
           {activeDocument && (
@@ -354,9 +501,7 @@ export const WorkspacePage = () => {
 
           <button
             className="btn btn-ghost"
-            onClick={() => {
-              setSidebarOpen((v) => !v);
-            }}
+            onClick={() => setSidebarOpen((v) => !v)}
             type="button"
             title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
           >
@@ -367,48 +512,42 @@ export const WorkspacePage = () => {
 
       <PdfViewer
         document={activeDocument}
-        selectedThreadId={selectedThreadId}
+        selectedThreadId={resolvedThreadId}
         threads={threads}
         onCreateComment={handleCreateComment}
         onQuoteInChat={handleQuoteInChat}
-        onSelectThread={handleSelectThread}
+        onSelectThread={handleHighlightClick}
       />
 
-      {popoverThread && popoverThread.kind === "anchor" && (
+      {showPopover && popoverThread && (
         <CommentPopover
           thread={popoverThread}
-          anchor={popoverAnchor}
-          open={!!popoverThreadId && !!popoverAnchor}
-          onClose={() => setPopoverThreadId(null)}
+          anchorElement={popoverAnchor}
+          open={showPopover}
+          onClose={closePopover}
           onExpand={handleExpandToSidebar}
-          onSend={handleSendCommentMessage}
+          onSend={handleSendPopoverMessage}
           isSending={sendMessageMutation.isPending}
         />
       )}
 
       <Sidebar
         open={sidebarOpen}
-        activeTab={sidebarTab}
-        onTabChange={setSidebarTab}
         onClose={() => setSidebarOpen(false)}
-        chatThreads={chatThreads}
-        activeChatThreadId={resolvedChatThreadId}
-        activeChatThread={activeChatThread}
-        anchorThreads={anchorThreads}
-        selectedThreadId={selectedThreadId}
-        focusedThread={
-          selectedThread?.kind === "anchor" ? selectedThread : null
-        }
+        threads={threads}
+        activeThreadId={resolvedThreadId}
+        activeThread={activeThread}
         isSending={sendMessageMutation.isPending}
         quotes={quotes}
-        onSendMessage={handleSendChatMessage}
-        onSendCommentMessage={handleSendCommentMessage}
-        onSelectThread={handleSelectThread}
-        onSelectChatThread={setActiveChatThreadId}
-        onCreateChatThread={handleCreateChatThread}
-        onDeleteChatThread={handleDeleteChatThread}
+        onSendMessage={handleSendMessage}
+        onSelectThread={setActiveThreadId}
+        onCreateThread={handleCreateThread}
+        onDeleteThread={handleDeleteThread}
+        onRenameThread={handleRenameThread}
         onRemoveQuote={(index) => setQuotes((prev) => prev.filter((_, i) => i !== index))}
         onClearQuotes={() => setQuotes([])}
+        onQuoteClick={handleScrollToPage}
+        onPageClick={handleScrollToPage}
       />
     </main>
   );

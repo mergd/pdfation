@@ -178,6 +178,70 @@ button:focus-visible {
   color: var(--muted);
 }
 
+/* ─── View Transitions ─── */
+
+::view-transition-group(pdf-hero) {
+  animation-duration: 450ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+::view-transition-old(pdf-hero),
+::view-transition-new(pdf-hero) {
+  animation-duration: 350ms;
+  mix-blend-mode: normal;
+}
+
+::view-transition-group(top-bar) {
+  animation-duration: 400ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+::view-transition-old(top-bar),
+::view-transition-new(top-bar) {
+  animation-duration: 250ms;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(library-content) {
+  animation: vt-content-exit 250ms ease-out both;
+}
+
+::view-transition-new(viewer-content) {
+  animation: vt-content-enter 350ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+::view-transition-old(root) {
+  animation-duration: 180ms;
+  animation-timing-function: ease-out;
+}
+
+::view-transition-new(root) {
+  animation-duration: 250ms;
+  animation-timing-function: ease-in;
+}
+
+@keyframes vt-content-exit {
+  to {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.98);
+  }
+}
+
+@keyframes vt-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+}
+
+::view-transition-old(viewer-content) {
+  animation: vt-content-exit 250ms ease-out both;
+}
+
+::view-transition-new(library-content) {
+  animation: vt-content-enter 350ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
