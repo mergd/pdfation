@@ -12,6 +12,7 @@ import { PdfViewer } from "../pdf-viewer/PdfViewer";
 import { CommentPopover } from "../pdf-viewer/CommentPopover";
 import { Sidebar } from "../sidebar/Sidebar";
 import { SettingsDialog } from "../settings/SettingsPanel";
+import { defaultModelForProvider } from "../../../shared/models";
 import { buildDocumentContext } from "../../lib/ai/context";
 import { sendChatRequest } from "../../lib/ai/chat-client";
 import {
@@ -143,6 +144,8 @@ export const WorkspacePage = () => {
 
     if (settings.providerMode === "byo" && !settings.byoOpenRouterKey.trim())
       return;
+    if (settings.providerMode === "openai" && !settings.byoOpenAiKey.trim())
+      return;
 
     const userMessage = createMessage("user", value);
     const optimistic: AppThread = {
@@ -163,6 +166,11 @@ export const WorkspacePage = () => {
           settings.providerMode === "byo"
             ? settings.byoOpenRouterKey.trim()
             : undefined,
+        byoOpenAiKey:
+          settings.providerMode === "openai"
+            ? settings.byoOpenAiKey.trim()
+            : undefined,
+        model: settings.model || undefined,
         sessionId: settings.sessionId,
         document: {
           id: activeDocument.id,
@@ -483,18 +491,33 @@ export const WorkspacePage = () => {
             <SettingsDialog
               settings={settings}
               onChangeProviderMode={(mode) => {
+                const model = defaultModelForProvider(mode);
                 updateWorkspace((c) =>
-                  c ? { ...c, settings: { ...c.settings, providerMode: mode } } : c,
+                  c ? { ...c, settings: { ...c.settings, providerMode: mode, model } } : c,
                 );
-                void persistSettings({ providerMode: mode });
+                void persistSettings({ providerMode: mode, model });
               }}
-              onChangeKey={(value) => {
+              onChangeModel={(model) => {
+                updateWorkspace((c) =>
+                  c ? { ...c, settings: { ...c.settings, model } } : c,
+                );
+                void persistSettings({ model });
+              }}
+              onChangeOpenRouterKey={(value) => {
                 updateWorkspace((c) =>
                   c
                     ? { ...c, settings: { ...c.settings, byoOpenRouterKey: value } }
                     : c,
                 );
                 void persistSettings({ byoOpenRouterKey: value });
+              }}
+              onChangeOpenAiKey={(value) => {
+                updateWorkspace((c) =>
+                  c
+                    ? { ...c, settings: { ...c.settings, byoOpenAiKey: value } }
+                    : c,
+                );
+                void persistSettings({ byoOpenAiKey: value });
               }}
             />
           )}

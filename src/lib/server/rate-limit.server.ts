@@ -6,7 +6,7 @@ interface RateWindow {
 }
 
 const MAX_PER_MINUTE = 5
-const MAX_PER_DAY = 40
+const MAX_PER_DAY = 50
 const MAX_IN_FLIGHT = 1
 const ONE_MINUTE = 60 * 1000
 const ONE_DAY = 24 * 60 * 60 * 1000

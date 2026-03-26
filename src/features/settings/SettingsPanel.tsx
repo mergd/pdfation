@@ -3,21 +3,31 @@ import { RadioGroup } from '@base-ui-components/react/radio-group'
 import { Radio } from '@base-ui-components/react/radio'
 
 import type { AppSettings, ProviderMode } from '../../../shared/contracts'
+import { modelsForProvider } from '../../../shared/models'
 
 import './settings-panel.css'
 
 interface SettingsDialogProps {
   settings: AppSettings
   onChangeProviderMode: (mode: ProviderMode) => void
-  onChangeKey: (value: string) => void
+  onChangeModel: (model: string) => void
+  onChangeOpenRouterKey: (value: string) => void
+  onChangeOpenAiKey: (value: string) => void
 }
 
 export const SettingsDialog = ({
   settings,
   onChangeProviderMode,
-  onChangeKey,
+  onChangeModel,
+  onChangeOpenRouterKey,
+  onChangeOpenAiKey,
 }: SettingsDialogProps) => {
-  const hasKey = settings.providerMode === 'byo' && settings.byoOpenRouterKey.trim().length > 0
+  const isByo = settings.providerMode === 'byo'
+  const isOpenAi = settings.providerMode === 'openai'
+  const hasKey =
+    (isByo && settings.byoOpenRouterKey.trim().length > 0) ||
+    (isOpenAi && settings.byoOpenAiKey.trim().length > 0)
+  const models = modelsForProvider(settings.providerMode)
 
   return (
     <Dialog.Root>
@@ -26,7 +36,7 @@ export const SettingsDialog = ({
         title="Settings"
       >
         <SettingsCogIcon />
-        {settings.providerMode === 'byo' && (
+        {(isByo || isOpenAi) && (
           <span className={`settings-trigger__dot ${hasKey ? 'settings-trigger__dot--active' : 'settings-trigger__dot--warn'}`} />
         )}
       </Dialog.Trigger>
@@ -67,10 +77,19 @@ export const SettingsDialog = ({
                     <span className="settings-dialog__radio-desc">Use your own OpenRouter API key</span>
                   </div>
                 </label>
+                <label className="settings-dialog__radio">
+                  <Radio.Root value="openai" className="settings-dialog__radio-root">
+                    <Radio.Indicator className="settings-dialog__radio-indicator" />
+                  </Radio.Root>
+                  <div className="settings-dialog__radio-content">
+                    <span className="settings-dialog__radio-title">OpenAI Direct</span>
+                    <span className="settings-dialog__radio-desc">Use your own OpenAI API key directly</span>
+                  </div>
+                </label>
               </RadioGroup>
             </div>
 
-            {settings.providerMode === 'byo' && (
+            {isByo && (
               <div className="settings-dialog__field">
                 <label className="settings-dialog__label" htmlFor="byo-key">
                   OpenRouter API key
@@ -78,7 +97,7 @@ export const SettingsDialog = ({
                 <input
                   id="byo-key"
                   className="settings-dialog__input"
-                  onChange={(event) => onChangeKey(event.target.value)}
+                  onChange={(event) => onChangeOpenRouterKey(event.target.value)}
                   placeholder="sk-or-v1-..."
                   type="password"
                   value={settings.byoOpenRouterKey}
@@ -88,6 +107,46 @@ export const SettingsDialog = ({
                 </p>
               </div>
             )}
+
+            {isOpenAi && (
+              <div className="settings-dialog__field">
+                <label className="settings-dialog__label" htmlFor="openai-key">
+                  OpenAI API key
+                </label>
+                <input
+                  id="openai-key"
+                  className="settings-dialog__input"
+                  onChange={(event) => onChangeOpenAiKey(event.target.value)}
+                  placeholder="sk-..."
+                  type="password"
+                  value={settings.byoOpenAiKey}
+                />
+                <p className="settings-dialog__hint">
+                  Stored locally in your browser. Never sent to our servers.
+                </p>
+              </div>
+            )}
+
+            <div className="settings-dialog__field">
+              <label className="settings-dialog__label" htmlFor="model-select">
+                Model
+              </label>
+              <div className="settings-dialog__select-wrap">
+                <select
+                  id="model-select"
+                  className="settings-dialog__select"
+                  value={settings.model}
+                  onChange={(event) => onChangeModel(event.target.value)}
+                >
+                  {models.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronIcon />
+              </div>
+            </div>
           </div>
         </Dialog.Popup>
       </Dialog.Portal>
@@ -106,5 +165,11 @@ const CloseIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+)
+
+const ChevronIcon = () => (
+  <svg className="settings-dialog__select-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9" />
   </svg>
 )

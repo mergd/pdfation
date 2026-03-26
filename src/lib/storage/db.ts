@@ -1,6 +1,7 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 
 import type { AppDocument, AppSettings, AppThread } from '../../../shared/contracts'
+import { DEFAULT_OPENROUTER_MODEL } from '../../../shared/models'
 
 interface SettingsRecord {
   key: 'app'
@@ -32,6 +33,8 @@ const DATABASE_VERSION = 2
 const defaultSettings = (): AppSettings => ({
   activeDocumentId: null,
   byoOpenRouterKey: '',
+  byoOpenAiKey: '',
+  model: DEFAULT_OPENROUTER_MODEL,
   providerMode: 'shared',
   sessionId: crypto.randomUUID(),
 })
@@ -71,7 +74,8 @@ export const getSettings = async (): Promise<AppSettings> => {
   const record = await database.get('settings', 'app')
 
   if (record) {
-    return record.value
+    const merged = { ...defaultSettings(), ...record.value }
+    return merged
   }
 
   const settings = defaultSettings()

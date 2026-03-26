@@ -21,7 +21,7 @@ export const buildDocumentContext = (
 ): { summary: string; snippets: SourceReference[] } => {
   if (thread.kind === 'anchor' && thread.anchor) {
     const page = document.pages.find((p) => p.pageNumber === thread.anchor!.pageNumber)
-    const pageContext = page ? cleanText(page.text).slice(0, 1200) : ''
+    const pageContext = page ? cleanText(page.text).slice(0, 3000) : ''
 
     return {
       summary: `Inline comment on page ${thread.anchor.pageNumber}. The user highlighted: "${thread.anchor.selectedText}"`,
@@ -40,7 +40,7 @@ export const buildDocumentContext = (
   const rankedChunks = [...document.chunks]
     .map((chunk) => ({ ...chunk, score: scoreChunk(chunk.text, prompt) }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5)
+    .slice(0, 10)
 
   return {
     summary: `Document-wide chat covering ${document.pageCount} pages.`,

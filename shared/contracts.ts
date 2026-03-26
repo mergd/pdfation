@@ -1,4 +1,4 @@
-export type ProviderMode = 'shared' | 'byo'
+export type ProviderMode = 'shared' | 'byo' | 'openai'
 
 export type ThreadKind = 'global' | 'anchor'
 
@@ -55,6 +55,8 @@ export interface AppThread {
 export interface AppSettings {
   activeDocumentId: string | null
   byoOpenRouterKey: string
+  byoOpenAiKey: string
+  model: string
   providerMode: ProviderMode
   sessionId: string
 }
@@ -67,6 +69,8 @@ export interface SourceReference {
 export interface ChatRequestPayload {
   providerMode: ProviderMode
   byoOpenRouterKey?: string
+  byoOpenAiKey?: string
+  model?: string
   sessionId: string
   document: {
     id: string

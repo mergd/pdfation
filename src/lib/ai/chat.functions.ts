@@ -2,7 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { setResponseStatus } from '@tanstack/react-start/server'
 import { z } from 'zod'
 
-import { createOpenRouterReply } from './chat.server'
+import { createOpenRouterReply, createOpenAiReply } from './chat.server'
 import { beginRateLimitedRequest, endRateLimitedRequest } from '../server/rate-limit.server'
 
 const messageSchema = z.object({
@@ -21,8 +21,10 @@ const anchorSchema = z.object({
 })
 
 const chatPayloadSchema = z.object({
-  providerMode: z.enum(['shared', 'byo']),
+  providerMode: z.enum(['shared', 'byo', 'openai']),
   byoOpenRouterKey: z.string().optional(),
+  byoOpenAiKey: z.string().optional(),
+  model: z.string().optional(),
   sessionId: z.string().min(1),
   document: z.object({
     id: z.string(),
@@ -58,7 +60,13 @@ export const sendChatRequest = createServerFn({ method: 'POST' })
         beginRateLimitedRequest(data.sessionId)
       }
 
-      return await createOpenRouterReply(data)
+      switch (data.providerMode) {
+        case 'shared':
+        case 'byo':
+          return await createOpenRouterReply(data)
+        case 'openai':
+          return await createOpenAiReply(data)
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Chat request failed.'
       const isRateLimited = message.startsWith('429:')
