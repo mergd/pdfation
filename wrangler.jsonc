@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pdfation",
+  "compatibility_date": "2026-03-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "@tanstack/react-start/server-entry",
+  "observability": {
+    "enabled": true
+  },
+
+  "kv_namespaces": [
+    {
+      "binding": "RATE_LIMIT",
+      "id": "65736b47c6a0405fa211bdfed810b19e"
+    }
+  ],
+
+  // Secrets (OPENROUTER_API_KEY) should be set via `wrangler secret put`
+  "vars": {
+    "OPENROUTER_SITE_URL": "https://pdfation.yet-to-be.com"
+  }
+}

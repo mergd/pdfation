@@ -57,7 +57,7 @@ export const sendChatRequest = createServerFn({ method: 'POST' })
 
     try {
       if (shouldThrottle) {
-        beginRateLimitedRequest(data.sessionId)
+        await beginRateLimitedRequest(data.sessionId)
       }
 
       switch (data.providerMode) {

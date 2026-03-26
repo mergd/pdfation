@@ -1,72 +1,45 @@
-interface RateWindow {
-  minuteTimestamps: number[]
-  dayWindowStartedAt: number
-  dayCount: number
-  inFlight: number
-}
+import { env } from 'cloudflare:workers'
 
 const MAX_PER_MINUTE = 5
 const MAX_PER_DAY = 50
-const MAX_IN_FLIGHT = 1
-const ONE_MINUTE = 60 * 1000
-const ONE_DAY = 24 * 60 * 60 * 1000
 
-const windows = new Map<string, RateWindow>()
-
-const getWindow = (sessionId: string) => {
-  const now = Date.now()
-  const existing = windows.get(sessionId)
-
-  if (!existing) {
-    const next: RateWindow = {
-      minuteTimestamps: [],
-      dayWindowStartedAt: now,
-      dayCount: 0,
-      inFlight: 0,
-    }
-    windows.set(sessionId, next)
-
-    return next
-  }
-
-  existing.minuteTimestamps = existing.minuteTimestamps.filter(
-    (timestamp) => now - timestamp < ONE_MINUTE,
-  )
-
-  if (now - existing.dayWindowStartedAt >= ONE_DAY) {
-    existing.dayWindowStartedAt = now
-    existing.dayCount = 0
-  }
-
-  return existing
+const todayKey = (sessionId: string) => {
+  const date = new Date().toISOString().slice(0, 10)
+  return `day:${sessionId}:${date}`
 }
 
-export const beginRateLimitedRequest = (sessionId: string) => {
-  const windowState = getWindow(sessionId)
-
-  if (windowState.inFlight >= MAX_IN_FLIGHT) {
-    throw new Error('429: You already have a shared request in flight. Wait for it to finish.')
-  }
-
-  if (windowState.minuteTimestamps.length >= MAX_PER_MINUTE) {
-    throw new Error('429: You hit the free shared limit for this minute. Try again shortly or add your own OpenRouter key.')
-  }
-
-  if (windowState.dayCount >= MAX_PER_DAY) {
-    throw new Error('429: You hit the free shared limit for today. Add your own OpenRouter key to keep going.')
-  }
-
-  windowState.minuteTimestamps.push(Date.now())
-  windowState.dayCount += 1
-  windowState.inFlight += 1
+const minuteKey = (sessionId: string) => {
+  const bucket = Math.floor(Date.now() / 60_000)
+  return `min:${sessionId}:${bucket}`
 }
 
-export const endRateLimitedRequest = (sessionId: string) => {
-  const windowState = windows.get(sessionId)
+const increment = async (key: string, ttl: number): Promise<number> => {
+  const current = await env.RATE_LIMIT.get(key)
+  const next = (current ? parseInt(current, 10) : 0) + 1
+  await env.RATE_LIMIT.put(key, String(next), { expirationTtl: ttl })
+  return next
+}
 
-  if (!windowState) {
-    return
+export const beginRateLimitedRequest = async (sessionId: string) => {
+  const [dayCount, minuteCount] = await Promise.all([
+    env.RATE_LIMIT.get(todayKey(sessionId)).then((v) => (v ? parseInt(v, 10) : 0)),
+    env.RATE_LIMIT.get(minuteKey(sessionId)).then((v) => (v ? parseInt(v, 10) : 0)),
+  ])
+
+  if (minuteCount >= MAX_PER_MINUTE) {
+    throw new Error('429: You hit the free shared limit for this minute. Try again shortly or add your own API key.')
   }
 
-  windowState.inFlight = Math.max(0, windowState.inFlight - 1)
+  if (dayCount >= MAX_PER_DAY) {
+    throw new Error('429: You hit the free shared limit for today. Add your own API key to keep going.')
+  }
+
+  await Promise.all([
+    increment(todayKey(sessionId), 86_400),
+    increment(minuteKey(sessionId), 120),
+  ])
+}
+
+export const endRateLimitedRequest = () => {
+  // no-op — KV doesn't need in-flight tracking
 }
