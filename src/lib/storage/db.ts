@@ -155,7 +155,7 @@ export const getOrCreateGlobalThread = async (documentId: string): Promise<AppTh
     id: `global:${documentId}`,
     documentId,
     kind: 'global',
-    title: 'Document chat',
+    title: 'Chat',
     anchor: null,
     messages: [],
     updatedAt: new Date().toISOString(),
@@ -164,6 +164,41 @@ export const getOrCreateGlobalThread = async (documentId: string): Promise<AppTh
   await database.put('threads', globalThread)
 
   return globalThread
+}
+
+export const createChatThread = async (documentId: string): Promise<AppThread> => {
+  const database = await getDatabase()
+  const allThreads = await database.getAllFromIndex('threads', 'by-document', documentId)
+  const chatCount = allThreads.filter((t) => t.kind === 'global').length
+
+  const thread: AppThread = {
+    id: crypto.randomUUID(),
+    documentId,
+    kind: 'global',
+    title: `Chat ${chatCount + 1}`,
+    anchor: null,
+    messages: [],
+    updatedAt: new Date().toISOString(),
+  }
+
+  await database.put('threads', thread)
+
+  return thread
+}
+
+export const deleteThread = async (threadId: string): Promise<void> => {
+  const database = await getDatabase()
+  await database.delete('threads', threadId)
+}
+
+export const renameThread = async (threadId: string, title: string): Promise<AppThread | null> => {
+  const database = await getDatabase()
+  const thread = await database.get('threads', threadId)
+  if (!thread) return null
+
+  const updated = { ...thread, title }
+  await database.put('threads', updated)
+  return updated
 }
 
 export interface DocumentWorkspace {

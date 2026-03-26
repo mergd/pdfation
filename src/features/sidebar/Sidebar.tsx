@@ -2,6 +2,7 @@ import { Tabs } from '@base-ui-components/react/tabs'
 
 import type { AppThread } from '../../../shared/contracts'
 import { ChatPanel } from './ChatPanel'
+import { ChatThreadList } from './ChatThreadList'
 import { CommentList } from './CommentList'
 
 import './sidebar.css'
@@ -13,16 +14,22 @@ interface SidebarProps {
   activeTab: SidebarTab
   onTabChange: (tab: SidebarTab) => void
   onClose: () => void
-  globalThread: AppThread | null
+  chatThreads: AppThread[]
+  activeChatThreadId: string | null
+  activeChatThread: AppThread | null
   anchorThreads: AppThread[]
   selectedThreadId: string | null
   focusedThread: AppThread | null
   isSending: boolean
-  quotedText: string | null
+  quotes: string[]
   onSendMessage: (value: string) => void
   onSendCommentMessage: (threadId: string, value: string) => void
   onSelectThread: (threadId: string) => void
-  onClearQuote: () => void
+  onSelectChatThread: (threadId: string) => void
+  onCreateChatThread: () => void
+  onDeleteChatThread: (threadId: string) => void
+  onRemoveQuote: (index: number) => void
+  onClearQuotes: () => void
 }
 
 export const Sidebar = ({
@@ -30,16 +37,22 @@ export const Sidebar = ({
   activeTab,
   onTabChange,
   onClose,
-  globalThread,
+  chatThreads,
+  activeChatThreadId,
+  activeChatThread,
   anchorThreads,
   selectedThreadId,
   focusedThread,
   isSending,
-  quotedText,
+  quotes,
   onSendMessage,
   onSendCommentMessage,
   onSelectThread,
-  onClearQuote,
+  onSelectChatThread,
+  onCreateChatThread,
+  onDeleteChatThread,
+  onRemoveQuote,
+  onClearQuotes,
 }: SidebarProps) => {
   return (
     <aside className={`sidebar ${open ? 'sidebar--open' : ''}`}>
@@ -67,13 +80,23 @@ export const Sidebar = ({
         </div>
 
         {activeTab === 'chat' ? (
-          <ChatPanel
-            thread={globalThread}
-            isSending={isSending}
-            quotedText={quotedText}
-            onSendMessage={onSendMessage}
-            onClearQuote={onClearQuote}
-          />
+          <div className="sidebar__chat-container">
+            <ChatThreadList
+              threads={chatThreads}
+              activeThreadId={activeChatThreadId}
+              onSelectThread={onSelectChatThread}
+              onCreateThread={onCreateChatThread}
+              onDeleteThread={onDeleteChatThread}
+            />
+            <ChatPanel
+              thread={activeChatThread}
+              isSending={isSending}
+              quotes={quotes}
+              onSendMessage={onSendMessage}
+              onRemoveQuote={onRemoveQuote}
+              onClearQuotes={onClearQuotes}
+            />
+          </div>
         ) : (
           <CommentList
             threads={anchorThreads}

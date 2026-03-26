@@ -114,6 +114,167 @@
   height: var(--active-tab-height);
 }
 
+/* ─── Chat container ─── */
+
+.sidebar__chat-container {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+}
+
+/* ─── Thread picker ─── */
+
+.thread-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.thread-picker__toggle {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-xs);
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  text-align: left;
+}
+
+.thread-picker__toggle:hover {
+  background: var(--border);
+}
+
+.thread-picker__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thread-picker__new {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-xs);
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.thread-picker__new:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.thread-picker__list {
+  position: absolute;
+  top: 100%;
+  left: var(--space-2);
+  right: var(--space-2);
+  z-index: 20;
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-1);
+  display: grid;
+  gap: 1px;
+  max-height: 14rem;
+  overflow: auto;
+  animation: thread-list-in 120ms ease;
+}
+
+@keyframes thread-list-in {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+.thread-picker__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2);
+  border-radius: var(--radius-xs);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.thread-picker__item:hover {
+  background: var(--panel-inset);
+}
+
+.thread-picker__item--active {
+  background: var(--accent-soft);
+}
+
+.thread-picker__item-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.thread-picker__item-title {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thread-picker__item--active .thread-picker__item-title {
+  color: var(--accent-strong);
+}
+
+.thread-picker__item-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.thread-picker__item-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-xs);
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  flex-shrink: 0;
+  transition: opacity var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+
+.thread-picker__item:hover .thread-picker__item-delete {
+  opacity: 1;
+}
+
+.thread-picker__item-delete:hover {
+  background: var(--danger-soft, rgba(239, 68, 68, 0.1));
+  color: var(--danger, #ef4444);
+}
+
 /* ─── Chat panel ─── */
 
 .chat-panel {
@@ -159,11 +320,17 @@
   box-shadow: 0 0 0 2px var(--accent-focus);
 }
 
+.chat-panel__quotes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-2) var(--space-2) 0;
+}
+
 .chat-panel__quote {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-2);
-  margin: var(--space-2) var(--space-2) 0;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-xs);
   background: var(--accent-soft);
@@ -176,9 +343,10 @@
 .chat-panel__quote-text {
   flex: 1;
   min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .chat-panel__quote-dismiss {

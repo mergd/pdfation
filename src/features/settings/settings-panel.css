@@ -21,80 +21,129 @@
   background: #fbbc04;
 }
 
-/* ─── Popover ─── */
+/* ─── Backdrop ─── */
 
-.settings-popover {
-  width: 18rem;
-  border-radius: var(--radius-md);
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  animation: settings-backdrop-in 150ms ease;
+}
+
+@keyframes settings-backdrop-in {
+  from { opacity: 0; }
+}
+
+/* ─── Dialog ─── */
+
+.settings-dialog {
+  position: fixed;
+  z-index: 101;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(24rem, calc(100vw - 2rem));
+  border-radius: var(--radius-lg, 12px);
   background: var(--panel-solid);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-lg);
-  animation: settings-in 120ms ease;
+  animation: settings-dialog-in 200ms ease;
   overflow: hidden;
 }
 
-@keyframes settings-in {
+@keyframes settings-dialog-in {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translate(-50%, -48%) scale(0.96);
   }
 }
 
-.settings-popover__header {
+.settings-dialog__header {
   display: flex;
   align-items: center;
-  padding: var(--space-3);
-  border-bottom: 1px solid var(--border);
-  background: var(--panel-inset);
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-4) var(--space-3);
 }
 
-.settings-popover__title {
+.settings-dialog__title {
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: 600;
   color: var(--text);
 }
 
-.settings-popover__body {
-  padding: var(--space-3);
+.settings-dialog__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-xs);
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.settings-dialog__close:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+/* ─── Body ─── */
+
+.settings-dialog__body {
+  padding: 0 var(--space-4) var(--space-4);
   display: grid;
   gap: var(--space-4);
 }
 
 /* ─── Field ─── */
 
-.settings-popover__field {
+.settings-dialog__field {
   display: grid;
   gap: var(--space-2);
 }
 
-.settings-popover__label {
+.settings-dialog__label {
   font-size: var(--text-xs);
   font-weight: 500;
   color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.settings-popover__radios {
+.settings-dialog__radios {
   display: grid;
   gap: var(--space-1);
 }
 
-.settings-popover__radio {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
+.settings-dialog__radio {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
   font-size: var(--text-sm);
   color: var(--text-secondary);
   cursor: pointer;
-  padding: var(--space-1) 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
 }
 
-.settings-popover__radio-root {
+.settings-dialog__radio:hover {
+  background: var(--panel-inset);
+}
+
+.settings-dialog__radio-root {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
   border-radius: var(--radius-full);
   border: 1.5px solid var(--border-strong);
   background: var(--panel-solid);
@@ -103,13 +152,13 @@
   flex-shrink: 0;
 }
 
-.settings-popover__radio-root[data-checked] {
+.settings-dialog__radio-root[data-checked] {
   border-color: var(--accent);
 }
 
-.settings-popover__radio-indicator {
-  width: 6px;
-  height: 6px;
+.settings-dialog__radio-indicator {
+  width: 7px;
+  height: 7px;
   border-radius: var(--radius-full);
   background: var(--accent);
   opacity: 0;
@@ -117,17 +166,45 @@
   transition: all var(--transition-fast);
 }
 
-.settings-popover__radio-indicator[data-checked] {
+.settings-dialog__radio-indicator[data-checked] {
   opacity: 1;
   transform: scale(1);
 }
 
-.settings-popover__input {
-  width: 100%;
-  font-size: var(--text-sm);
+.settings-dialog__radio-content {
+  display: grid;
+  gap: 1px;
 }
 
-.settings-popover__hint {
+.settings-dialog__radio-title {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.settings-dialog__radio-desc {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.settings-dialog__input {
+  width: 100%;
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--panel-inset);
+  color: var(--text);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.settings-dialog__input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-focus);
+}
+
+.settings-dialog__hint {
   margin: 0;
   font-size: 11px;
   color: var(--muted);

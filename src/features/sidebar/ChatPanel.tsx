@@ -5,17 +5,19 @@ import type { AppThread } from "../../../shared/contracts";
 interface ChatPanelProps {
   thread: AppThread | null;
   isSending: boolean;
-  quotedText: string | null;
+  quotes: string[];
   onSendMessage: (value: string) => void;
-  onClearQuote: () => void;
+  onRemoveQuote: (index: number) => void;
+  onClearQuotes: () => void;
 }
 
 export const ChatPanel = ({
   thread,
   isSending,
-  quotedText,
+  quotes,
   onSendMessage,
-  onClearQuote,
+  onRemoveQuote,
+  onClearQuotes,
 }: ChatPanelProps) => {
   const [draft, setDraft] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -27,25 +29,26 @@ export const ChatPanel = ({
   }, [messages.length]);
 
   useEffect(() => {
-    if (quotedText) {
+    if (quotes.length > 0) {
       textareaRef.current?.focus();
     }
-  }, [quotedText]);
+  }, [quotes.length]);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     const value = draft.trim();
-    if ((!value && !quotedText) || isSending) return;
+    if ((!value && quotes.length === 0) || isSending) return;
 
-    const fullMessage = quotedText
+    const quoteParts = quotes.map((q) => `> ${q}`).join("\n\n");
+    const fullMessage = quoteParts
       ? value
-        ? `> ${quotedText}\n\n${value}`
-        : `> ${quotedText}`
+        ? `${quoteParts}\n\n${value}`
+        : quoteParts
       : value;
 
     onSendMessage(fullMessage);
     setDraft("");
-    onClearQuote();
+    onClearQuotes();
   };
 
   return (
@@ -87,19 +90,20 @@ export const ChatPanel = ({
 
       <form className="chat-panel__composer" onSubmit={handleSubmit}>
         <div className="chat-panel__input-box">
-          {quotedText && (
-            <div className="chat-panel__quote">
-              <span className="chat-panel__quote-text">
-                "{quotedText.slice(0, 80)}
-                {quotedText.length > 80 ? "…" : ""}"
-              </span>
-              <button
-                type="button"
-                onClick={onClearQuote}
-                className="chat-panel__quote-dismiss"
-              >
-                <CloseIcon />
-              </button>
+          {quotes.length > 0 && (
+            <div className="chat-panel__quotes">
+              {quotes.map((q, i) => (
+                <div key={i} className="chat-panel__quote">
+                  <span className="chat-panel__quote-text">"{q}"</span>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveQuote(i)}
+                    className="chat-panel__quote-dismiss"
+                  >
+                    <CloseIcon />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
           <textarea
@@ -119,7 +123,7 @@ export const ChatPanel = ({
           <button
             type="submit"
             className="chat-panel__send"
-            disabled={isSending || (!draft.trim() && !quotedText)}
+            disabled={isSending || (!draft.trim() && quotes.length === 0)}
             aria-label="Send"
           >
             {isSending ? <SpinnerIcon /> : <SendIcon />}

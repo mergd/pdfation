@@ -156,6 +156,11 @@ export const PdfPage = ({
       canvas.style.height = `${viewport.height}px`;
       setSize({ width: viewport.width, height: viewport.height });
 
+      const surface = canvas.parentElement;
+      if (surface) {
+        surface.style.setProperty("--total-scale-factor", String(renderScale));
+      }
+
       context.setTransform(1, 0, 0, 1, 0, 0);
       context.clearRect(0, 0, canvas.width, canvas.height);
       context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
@@ -169,8 +174,6 @@ export const PdfPage = ({
       if (ignore) return;
 
       textContainer.innerHTML = "";
-      textContainer.style.width = `${viewport.width}px`;
-      textContainer.style.height = `${viewport.height}px`;
 
       textLayerInstance = new TextLayer({
         textContentSource: textContent,

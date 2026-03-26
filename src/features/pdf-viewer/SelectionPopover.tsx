@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from 'react'
-import { Popover } from '@base-ui-components/react/popover'
+import { useCallback, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 interface SelectionPopoverProps {
   selection: {
@@ -17,72 +17,81 @@ export const SelectionPopover = ({
   onQuote,
   onDismiss,
 }: SelectionPopoverProps) => {
+  const popoverRef = useRef<HTMLDivElement>(null)
   const onDismissRef = useRef(onDismiss)
   onDismissRef.current = onDismiss
 
   useEffect(() => {
     if (!selection) return
 
+    const dismiss = () => onDismissRef.current()
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        dismiss()
+      }
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') dismiss()
+    }
+
     const scrollContainer = document.querySelector('.pdf-viewer__scroll')
-    if (!scrollContainer) return
 
-    const handleScroll = () => onDismissRef.current()
-    scrollContainer.addEventListener('scroll', handleScroll, { passive: true })
-    return () => scrollContainer.removeEventListener('scroll', handleScroll)
-  }, [selection])
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    scrollContainer?.addEventListener('scroll', dismiss, { passive: true })
 
-  const virtualAnchor = useMemo(() => {
-    if (!selection) return undefined
-
-    const x = selection.rect.left + selection.rect.width / 2
-    const y = selection.rect.top
-
-    return {
-      getBoundingClientRect: () => ({
-        x,
-        y,
-        width: 0,
-        height: 0,
-        top: y,
-        right: x,
-        bottom: y,
-        left: x,
-        toJSON: () => {},
-      }),
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+      scrollContainer?.removeEventListener('scroll', dismiss)
     }
   }, [selection])
 
-  return (
-    <Popover.Root open={!!selection} onOpenChange={(open) => { if (!open) onDismiss() }}>
-      <Popover.Portal>
-        <Popover.Positioner
-          side="top"
-          align="center"
-          sideOffset={8}
-          anchor={virtualAnchor}
-        >
-          <Popover.Popup className="selection-popover" onMouseDown={(e) => e.stopPropagation()}>
-            <button
-              className="selection-popover__action"
-              onClick={onComment}
-              type="button"
-            >
-              <CommentIcon />
-              Comment
-            </button>
-            <div className="selection-popover__divider" />
-            <button
-              className="selection-popover__action"
-              onClick={onQuote}
-              type="button"
-            >
-              <QuoteIcon />
-              Quote in chat
-            </button>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+  const handleComment = useCallback(() => {
+    onComment()
+  }, [onComment])
+
+  const handleQuote = useCallback(() => {
+    onQuote()
+  }, [onQuote])
+
+  if (!selection) return null
+
+  const x = selection.rect.left + selection.rect.width / 2
+  const y = selection.rect.top
+
+  return createPortal(
+    <div
+      ref={popoverRef}
+      className="selection-popover"
+      style={{
+        position: 'fixed',
+        left: x,
+        top: y,
+        transform: 'translate(-50%, calc(-100% - 8px))',
+      }}
+    >
+      <button
+        className="selection-popover__action"
+        onClick={handleComment}
+        type="button"
+      >
+        <CommentIcon />
+        Comment
+      </button>
+      <div className="selection-popover__divider" />
+      <button
+        className="selection-popover__action"
+        onClick={handleQuote}
+        type="button"
+      >
+        <QuoteIcon />
+        Quote in chat
+      </button>
+    </div>,
+    document.body,
   )
 }
 

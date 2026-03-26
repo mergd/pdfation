@@ -24,6 +24,7 @@ interface TextSelection {
 
 interface PdfViewerProps {
   document: AppDocument | null;
+  loading?: boolean;
   selectedThreadId: string | null;
   threads: AppThread[];
   onCreateComment: (payload: {
@@ -38,6 +39,7 @@ interface PdfViewerProps {
 
 export const PdfViewer = ({
   document: appDocument,
+  loading = false,
   selectedThreadId,
   threads,
   onCreateComment,
@@ -62,6 +64,7 @@ export const PdfViewer = ({
         return;
       }
 
+      setPdf(null);
       const arrayBuffer = await appDocument.blob.arrayBuffer();
       const nextPdf = await getDocument({ data: arrayBuffer }).promise;
 
@@ -137,7 +140,9 @@ export const PdfViewer = ({
     setGoToInput("");
   };
 
-  if (!appDocument) {
+  const showSkeleton = loading || (!!appDocument && !pdf);
+
+  if (!appDocument && !loading) {
     return (
       <section className="pdf-viewer pdf-viewer--empty">
         <div className="pdf-viewer__empty-content">
@@ -151,9 +156,13 @@ export const PdfViewer = ({
   return (
     <section className="pdf-viewer">
       <header className="pdf-viewer__header">
-        <h2>{appDocument.name}</h2>
+        {appDocument ? (
+          <h2>{appDocument.name}</h2>
+        ) : (
+          <div className="pdf-viewer__title-skeleton" aria-hidden="true" />
+        )}
         <div className="pdf-viewer__nav">
-          {showGoTo ? (
+          {appDocument && !showSkeleton && showGoTo ? (
             <form
               className="pdf-viewer__goto"
               onSubmit={handleGoToPage}
@@ -181,23 +190,27 @@ export const PdfViewer = ({
                 Go
               </button>
             </form>
-          ) : (
+          ) : appDocument ? (
             <button
               className="pdf-viewer__page-indicator"
               onClick={() => setShowGoTo(true)}
               title="Go to page"
               type="button"
             >
-              <span>{visiblePage}</span>
+              <span>{showSkeleton ? 1 : visiblePage}</span>
               <span className="pdf-viewer__page-sep">/</span>
               <span>{appDocument.pageCount}</span>
             </button>
+          ) : (
+            <div className="pdf-viewer__page-indicator-skeleton" aria-hidden="true" />
           )}
         </div>
       </header>
 
       <div ref={scrollRef} className="pdf-viewer__scroll">
-        {pdf ? (
+        {showSkeleton ? (
+          <PdfViewerSkeleton pageCount={appDocument?.pageCount ?? 2} />
+        ) : appDocument && pdf ? (
           Array.from({ length: appDocument.pageCount }, (_, i) => (
             <PdfPage
               key={i + 1}
@@ -222,5 +235,36 @@ export const PdfViewer = ({
         onDismiss={handleDismiss}
       />
     </section>
+  );
+};
+
+const PdfViewerSkeleton = ({ pageCount }: { pageCount: number }) => {
+  const skeletonPages = Math.max(1, Math.min(pageCount, 2));
+
+  return (
+    <div className="pdf-viewer__skeleton" aria-hidden="true">
+      {Array.from({ length: skeletonPages }, (_, index) => (
+        <article key={index} className="pdf-page-card pdf-page-card--skeleton">
+          <div className="pdf-page-card__label">
+            <span>{index + 1}</span>
+          </div>
+
+          <div className="pdf-page-card__surface pdf-page-card__surface--skeleton">
+            <div className="pdf-page-card__skeleton-content">
+              <div className="pdf-page-card__skeleton-line pdf-page-card__skeleton-line--title" />
+              <div className="pdf-page-card__skeleton-line pdf-page-card__skeleton-line--w-100" />
+              <div className="pdf-page-card__skeleton-line pdf-page-card__skeleton-line--w-92" />
+              <div className="pdf-page-card__skeleton-line pdf-page-card__skeleton-line--w-96" />
+              <div className="pdf-page-card__skeleton-line pdf-page-card__skeleton-line--w-84" />
+              <div className="pdf-page-card__skeleton-gap" />
+              <div className="pdf-page-card__skeleton-line pdf-page-card__skeleton-line--w-88" />
+              <div className="pdf-page-card__skeleton-line pdf-page-card__skeleton-line--w-100" />
+              <div className="pdf-page-card__skeleton-line pdf-page-card__skeleton-line--w-90" />
+              <div className="pdf-page-card__skeleton-line pdf-page-card__skeleton-line--w-72" />
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
   );
 };

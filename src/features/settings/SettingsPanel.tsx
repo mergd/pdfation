@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Popover } from '@base-ui-components/react/popover'
+import { Dialog } from '@base-ui-components/react/dialog'
 import { RadioGroup } from '@base-ui-components/react/radio-group'
 import { Radio } from '@base-ui-components/react/radio'
 
@@ -18,13 +17,11 @@ export const SettingsDialog = ({
   onChangeProviderMode,
   onChangeKey,
 }: SettingsDialogProps) => {
-  const [open, setOpen] = useState(false)
-
   const hasKey = settings.providerMode === 'byo' && settings.byoOpenRouterKey.trim().length > 0
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger
+    <Dialog.Root>
+      <Dialog.Trigger
         className="btn btn-ghost settings-trigger"
         title="Settings"
       >
@@ -32,61 +29,69 @@ export const SettingsDialog = ({
         {settings.providerMode === 'byo' && (
           <span className={`settings-trigger__dot ${hasKey ? 'settings-trigger__dot--active' : 'settings-trigger__dot--warn'}`} />
         )}
-      </Popover.Trigger>
+      </Dialog.Trigger>
 
-      <Popover.Portal>
-        <Popover.Positioner side="bottom" align="end" sideOffset={6}>
-          <Popover.Popup className="settings-popover">
-            <header className="settings-popover__header">
-              <h3 className="settings-popover__title">Settings</h3>
-            </header>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="settings-backdrop" />
+        <Dialog.Popup className="settings-dialog">
+          <header className="settings-dialog__header">
+            <Dialog.Title className="settings-dialog__title">Settings</Dialog.Title>
+            <Dialog.Close className="settings-dialog__close" aria-label="Close">
+              <CloseIcon />
+            </Dialog.Close>
+          </header>
 
-            <div className="settings-popover__body">
-              <div className="settings-popover__field">
-                <span className="settings-popover__label">AI Provider</span>
-                <RadioGroup
-                  value={settings.providerMode}
-                  onValueChange={(value) => onChangeProviderMode(value as ProviderMode)}
-                  className="settings-popover__radios"
-                >
-                  <label className="settings-popover__radio">
-                    <Radio.Root value="shared" className="settings-popover__radio-root">
-                      <Radio.Indicator className="settings-popover__radio-indicator" />
-                    </Radio.Root>
-                    Shared
-                  </label>
-                  <label className="settings-popover__radio">
-                    <Radio.Root value="byo" className="settings-popover__radio-root">
-                      <Radio.Indicator className="settings-popover__radio-indicator" />
-                    </Radio.Root>
-                    Bring your own key
-                  </label>
-                </RadioGroup>
-              </div>
-
-              {settings.providerMode === 'byo' && (
-                <div className="settings-popover__field">
-                  <label className="settings-popover__label" htmlFor="byo-key">
-                    OpenRouter API key
-                  </label>
-                  <input
-                    id="byo-key"
-                    className="settings-popover__input"
-                    onChange={(event) => onChangeKey(event.target.value)}
-                    placeholder="sk-or-v1-..."
-                    type="password"
-                    value={settings.byoOpenRouterKey}
-                  />
-                  <p className="settings-popover__hint">
-                    Stored locally in your browser. Never sent to our servers.
-                  </p>
-                </div>
-              )}
+          <div className="settings-dialog__body">
+            <div className="settings-dialog__field">
+              <span className="settings-dialog__label">AI Provider</span>
+              <RadioGroup
+                value={settings.providerMode}
+                onValueChange={(value) => onChangeProviderMode(value as ProviderMode)}
+                className="settings-dialog__radios"
+              >
+                <label className="settings-dialog__radio">
+                  <Radio.Root value="shared" className="settings-dialog__radio-root">
+                    <Radio.Indicator className="settings-dialog__radio-indicator" />
+                  </Radio.Root>
+                  <div className="settings-dialog__radio-content">
+                    <span className="settings-dialog__radio-title">Shared</span>
+                    <span className="settings-dialog__radio-desc">Use the shared API quota (rate limited)</span>
+                  </div>
+                </label>
+                <label className="settings-dialog__radio">
+                  <Radio.Root value="byo" className="settings-dialog__radio-root">
+                    <Radio.Indicator className="settings-dialog__radio-indicator" />
+                  </Radio.Root>
+                  <div className="settings-dialog__radio-content">
+                    <span className="settings-dialog__radio-title">Bring your own key</span>
+                    <span className="settings-dialog__radio-desc">Use your own OpenRouter API key</span>
+                  </div>
+                </label>
+              </RadioGroup>
             </div>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+
+            {settings.providerMode === 'byo' && (
+              <div className="settings-dialog__field">
+                <label className="settings-dialog__label" htmlFor="byo-key">
+                  OpenRouter API key
+                </label>
+                <input
+                  id="byo-key"
+                  className="settings-dialog__input"
+                  onChange={(event) => onChangeKey(event.target.value)}
+                  placeholder="sk-or-v1-..."
+                  type="password"
+                  value={settings.byoOpenRouterKey}
+                />
+                <p className="settings-dialog__hint">
+                  Stored locally in your browser. Never sent to our servers.
+                </p>
+              </div>
+            )}
+          </div>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
 
@@ -94,5 +99,12 @@ const SettingsCogIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
     <circle cx="12" cy="12" r="3" />
+  </svg>
+)
+
+const CloseIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 )
