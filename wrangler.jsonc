@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "pdfation",
+  "account_id": "24d3bab86b3b44170195747d8f330d4e",
   "compatibility_date": "2026-03-25",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
