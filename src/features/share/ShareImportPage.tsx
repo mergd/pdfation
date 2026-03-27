@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { formatDistanceToNow } from 'date-fns'
@@ -7,6 +7,8 @@ import type { AppBootstrap } from '../../lib/storage/db'
 import { getSettings, updateSettings } from '../../lib/storage/db'
 import { fetchShareBundle } from '../../lib/share/share-client'
 import { importShareBundle } from '../../lib/share/local-share'
+import { base64ToBlob } from '../../lib/share/blob'
+import { PdfThumbnail } from '../library/PdfThumbnail'
 
 import './share.css'
 
@@ -52,18 +54,34 @@ export const ShareImportPage = () => {
     },
   })
 
+  const previewBlob = useMemo(() => {
+    if (!shareQuery.data) return null
+    const { base64, mimeType } = shareQuery.data.document.file
+    return base64ToBlob(base64, mimeType)
+  }, [shareQuery.data])
+
   return (
     <main className="share-page">
       <div className="share-page__card">
         <div className="share-page__eyebrow">Shared snapshot</div>
-        <h1 className="share-page__title">
-          {shareQuery.data?.document.name ?? 'Open shared PDF'}
-        </h1>
-        <p className="share-page__subtitle">
-          {shareQuery.data
-            ? `${shareQuery.data.sharedByName ?? 'Someone'} shared this PDF, comments, and chats. Importing creates an editable local copy in your browser.`
-            : 'Loading the shared snapshot…'}
-        </p>
+
+        <div className="share-page__hero">
+          {previewBlob ? (
+            <div className="share-page__thumbnail">
+              <PdfThumbnail blob={previewBlob} width={120} />
+            </div>
+          ) : null}
+          <div className="share-page__hero-text">
+            <h1 className="share-page__title">
+              {shareQuery.data?.document.name ?? 'Open shared PDF'}
+            </h1>
+            <p className="share-page__subtitle">
+              {shareQuery.data
+                ? `${shareQuery.data.sharedByName ?? 'Someone'} shared this PDF, comments, and chats. Importing creates an editable local copy in your browser.`
+                : 'Loading the shared snapshot…'}
+            </p>
+          </div>
+        </div>
 
         {shareQuery.isLoading ? (
           <div className="share-page__loading">Loading share…</div>
