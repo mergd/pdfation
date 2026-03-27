@@ -18,6 +18,7 @@ interface SidebarProps {
   onCreateThread: () => void
   onDeleteThread: (threadId: string) => void
   onRenameThread: (threadId: string, title: string) => void
+  onClearAllComments: () => void
   onRemoveQuote: (index: number) => void
   onClearQuotes: () => void
   onQuoteClick: (pageNumber: number) => void
@@ -37,6 +38,7 @@ export const Sidebar = ({
   onCreateThread,
   onDeleteThread,
   onRenameThread,
+  onClearAllComments,
   onRemoveQuote,
   onClearQuotes,
   onQuoteClick,
@@ -52,6 +54,7 @@ export const Sidebar = ({
           onCreateThread={onCreateThread}
           onDeleteThread={onDeleteThread}
           onRenameThread={onRenameThread}
+          onClearAllComments={onClearAllComments}
           onClose={onClose}
         />
         <ChatPanel

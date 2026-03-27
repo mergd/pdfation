@@ -89,11 +89,11 @@ export const ShareImportPage = () => {
             </div>
 
             <label className="share-page__field">
-              <span className="share-page__label">Your username</span>
+              <span className="share-page__label">Your display name</span>
               <input
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
-                placeholder="Optional display name"
+                placeholder="e.g. cosmic-falcon"
               />
               <span className="share-page__hint">
                 New comments and chats on your imported copy will use this name.

@@ -14,6 +14,14 @@ const scoreChunk = (chunkText: string, query: string) => {
   return terms.reduce((score, term) => (normalizedChunk.includes(term) ? score + 1 : score), 0)
 }
 
+const buildPageOutline = (document: AppDocument) =>
+  document.pages
+    .map((p) => {
+      const preview = cleanText(p.text).slice(0, 150)
+      return `  Page ${p.pageNumber}: ${preview}${p.text.length > 150 ? '…' : ''}`
+    })
+    .join('\n')
+
 export const buildDocumentContext = (
   document: AppDocument,
   thread: AppThread,
@@ -21,7 +29,7 @@ export const buildDocumentContext = (
 ): { summary: string; snippets: SourceReference[] } => {
   if (thread.kind === 'anchor' && thread.anchor) {
     const page = document.pages.find((p) => p.pageNumber === thread.anchor!.pageNumber)
-    const pageContext = page ? cleanText(page.text).slice(0, 3000) : ''
+    const pageContext = page ? cleanText(page.text).slice(0, 4000) : ''
 
     return {
       summary: `Inline comment on page ${thread.anchor.pageNumber}. The user highlighted: "${thread.anchor.selectedText}"`,
@@ -40,10 +48,12 @@ export const buildDocumentContext = (
   const rankedChunks = [...document.chunks]
     .map((chunk) => ({ ...chunk, score: scoreChunk(chunk.text, prompt) }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 10)
+    .slice(0, 20)
+
+  const outline = buildPageOutline(document)
 
   return {
-    summary: `Document-wide chat covering ${document.pageCount} pages.`,
+    summary: `"${document.name}" — ${document.pageCount} pages.\n\nPage outline:\n${outline}`,
     snippets: rankedChunks.map((c) => ({ pageNumber: c.pageNumber, snippet: c.text })),
   }
 }

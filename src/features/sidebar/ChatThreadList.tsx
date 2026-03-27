@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Dialog } from "@base-ui-components/react/dialog";
 
 import type { AppThread } from "../../../shared/contracts";
 import { formatRelativeDate } from "../../lib/format-date";
@@ -10,6 +11,7 @@ interface ChatThreadListProps {
   onCreateThread: () => void;
   onDeleteThread: (threadId: string) => void;
   onRenameThread: (threadId: string, title: string) => void;
+  onClearAllComments: () => void;
   onClose: () => void;
 }
 
@@ -20,6 +22,7 @@ export const ChatThreadList = ({
   onCreateThread,
   onDeleteThread,
   onRenameThread,
+  onClearAllComments,
   onClose,
 }: ChatThreadListProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -52,6 +55,11 @@ export const ChatThreadList = ({
     [threads],
   );
 
+  const anchorCount = useMemo(
+    () => threads.filter((t) => t.kind === "anchor").length,
+    [threads],
+  );
+
   const handleNewThread = () => {
     const emptyGlobal = threads.find(
       (t) => t.kind === "global" && t.messages.length === 0,
@@ -68,6 +76,40 @@ export const ChatThreadList = ({
       <div className="thread-list__header">
         <span className="thread-list__label">Threads</span>
         <div className="thread-list__header-actions">
+          {anchorCount > 0 && (
+            <Dialog.Root>
+              <Dialog.Trigger
+                className="thread-list__header-btn thread-list__header-btn--danger"
+                title="Clear all comments"
+              >
+                <TrashIcon />
+              </Dialog.Trigger>
+              <Dialog.Portal>
+                <Dialog.Backdrop className="confirm-dialog__backdrop" />
+                <Dialog.Popup className="confirm-dialog">
+                  <Dialog.Title className="confirm-dialog__title">
+                    Clear all comments?
+                  </Dialog.Title>
+                  <Dialog.Description className="confirm-dialog__desc">
+                    This will permanently delete {anchorCount}{" "}
+                    {anchorCount === 1 ? "comment" : "comments"} and their
+                    messages. This cannot be undone.
+                  </Dialog.Description>
+                  <div className="confirm-dialog__actions">
+                    <Dialog.Close className="btn btn-ghost confirm-dialog__cancel">
+                      Cancel
+                    </Dialog.Close>
+                    <Dialog.Close
+                      className="btn confirm-dialog__confirm"
+                      onClick={onClearAllComments}
+                    >
+                      Delete all
+                    </Dialog.Close>
+                  </div>
+                </Dialog.Popup>
+              </Dialog.Portal>
+            </Dialog.Root>
+          )}
           <button
             type="button"
             className="thread-list__header-btn"
@@ -94,6 +136,7 @@ export const ChatThreadList = ({
           const msgCount = thread.messages.length;
           const isAnchor = thread.kind === "anchor";
           const isEditing = editingId === thread.id;
+          const anchorPage = thread.anchor?.pageNumber;
 
           return (
             <button
@@ -129,18 +172,16 @@ export const ChatThreadList = ({
                     className="thread-list__item-title"
                     onDoubleClick={(e) => {
                       e.stopPropagation();
-                      if (!isAnchor) startRename(thread);
+                      startRename(thread);
                     }}
                   >
-                    {isAnchor
-                      ? `"${thread.anchor?.selectedText.slice(0, 40)}${(thread.anchor?.selectedText.length ?? 0) > 40 ? "…" : ""}"`
-                      : thread.title}
+                    {thread.title}
                   </span>
                 )}
               </div>
 
               <div className="thread-list__item-actions">
-                {!isAnchor && !isEditing && (
+                {!isEditing && (
                   <button
                     type="button"
                     className="thread-list__action"
@@ -231,6 +272,22 @@ const PencilIcon = () => (
     strokeLinejoin="round"
   >
     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
   </svg>
 );
 

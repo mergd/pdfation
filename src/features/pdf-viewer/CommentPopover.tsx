@@ -29,7 +29,6 @@ export const CommentPopover = ({
 }: CommentPopoverProps) => {
   const [draft, setDraft] = useState("");
   const [position, setPosition] = useState<Position | null>(null);
-  const [portalTarget, setPortalTarget] = useState<Element | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastMessages = thread.messages.slice(-6);
@@ -37,22 +36,21 @@ export const CommentPopover = ({
   const recalculate = useCallback(() => {
     if (!anchorElement) return;
 
-    const scrollContainer = document.querySelector(".pdf-viewer__scroll");
-    if (!scrollContainer) return;
-
-    setPortalTarget(scrollContainer);
-
-    const scrollRect = scrollContainer.getBoundingClientRect();
     const anchorRect = anchorElement.getBoundingClientRect();
-    const top = anchorRect.top - scrollRect.top + scrollContainer.scrollTop;
+    const popoverWidth = 340;
+    const popoverHeight = 280;
+    const gap = 8;
 
-    const pageCard = anchorElement.closest(".pdf-page-card");
-    let left: number;
-    if (pageCard) {
-      const cardRect = pageCard.getBoundingClientRect();
-      left = cardRect.right - scrollRect.left + 20;
-    } else {
-      left = scrollRect.width * 0.5 + 420;
+    let top = anchorRect.bottom + gap;
+    let left = anchorRect.left;
+
+    if (left + popoverWidth > window.innerWidth - 12) {
+      left = window.innerWidth - popoverWidth - 12;
+    }
+    left = Math.max(12, left);
+
+    if (top + popoverHeight > window.innerHeight - 12) {
+      top = anchorRect.top - popoverHeight - gap;
     }
 
     setPosition({ top, left });
@@ -67,11 +65,14 @@ export const CommentPopover = ({
     recalculate();
     inputRef.current?.focus();
 
-    const ro = new ResizeObserver(recalculate);
     const scrollContainer = document.querySelector(".pdf-viewer__scroll");
-    if (scrollContainer) ro.observe(scrollContainer);
+    scrollContainer?.addEventListener("scroll", recalculate, { passive: true });
+    window.addEventListener("resize", recalculate);
 
-    return () => ro.disconnect();
+    return () => {
+      scrollContainer?.removeEventListener("scroll", recalculate);
+      window.removeEventListener("resize", recalculate);
+    };
   }, [open, anchorElement, recalculate]);
 
   useEffect(() => {
@@ -103,7 +104,7 @@ export const CommentPopover = ({
     setDraft("");
   };
 
-  if (!open || !position || !portalTarget) return null;
+  if (!open || !position) return null;
 
   return createPortal(
     <div
@@ -112,11 +113,6 @@ export const CommentPopover = ({
       style={{ top: position.top, left: position.left }}
     >
       <div className="comment-popover__header">
-        <span className="comment-popover__title">
-          {thread.anchor?.selectedText
-            ? `"${thread.anchor.selectedText.slice(0, 60)}${thread.anchor.selectedText.length > 60 ? "…" : ""}"`
-            : thread.title}
-        </span>
         <div className="comment-popover__actions">
           <button
             className="comment-popover__btn"
@@ -172,7 +168,7 @@ export const CommentPopover = ({
         </button>
       </form>
     </div>,
-    portalTarget,
+    document.body,
   );
 };
 

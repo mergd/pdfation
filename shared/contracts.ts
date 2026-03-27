@@ -93,6 +93,7 @@ export interface ChatRequestPayload {
     summary: string
     snippets: SourceReference[]
   }
+  pages: { pageNumber: number; text: string }[]
 }
 
 export interface ChatResponsePayload {

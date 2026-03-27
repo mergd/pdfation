@@ -25,15 +25,36 @@ function findHighlightSpans(
   container: HTMLDivElement,
   selectedText: string,
   textPrefix: string,
+  textSuffix: string,
 ): Range | null {
   const fullText = container.textContent ?? "";
-  const searchTarget = textPrefix + selectedText;
+  const searchTargets = [
+    {
+      target: `${textPrefix}${selectedText}${textSuffix}`,
+      offset: textPrefix.length,
+    },
+    {
+      target: `${textPrefix}${selectedText}`,
+      offset: textPrefix.length,
+    },
+    {
+      target: `${selectedText}${textSuffix}`,
+      offset: 0,
+    },
+    {
+      target: selectedText,
+      offset: 0,
+    },
+  ].filter(({ target }) => target.length > 0);
 
-  let matchIndex = fullText.indexOf(searchTarget);
-  if (matchIndex !== -1) {
-    matchIndex += textPrefix.length;
-  } else {
-    matchIndex = fullText.indexOf(selectedText);
+  let matchIndex = -1;
+
+  for (const { target, offset } of searchTargets) {
+    const foundIndex = fullText.indexOf(target);
+    if (foundIndex !== -1) {
+      matchIndex = foundIndex + offset;
+      break;
+    }
   }
 
   if (matchIndex === -1) return null;
@@ -69,6 +90,44 @@ function findHighlightSpans(
   range.setStart(startNode, startOffset);
   range.setEnd(endNode, endOffset);
   return range;
+}
+
+function getRangeOffsets(
+  container: HTMLDivElement,
+  range: Range,
+): { start: number; end: number } | null {
+  if (
+    !(range.startContainer instanceof Text) ||
+    !(range.endContainer instanceof Text)
+  ) {
+    return null;
+  }
+
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  let charCount = 0;
+  let start: number | null = null;
+  let end: number | null = null;
+
+  while (walker.nextNode()) {
+    const node = walker.currentNode as Text;
+
+    if (node === range.startContainer) {
+      start = charCount + range.startOffset;
+    }
+
+    if (node === range.endContainer) {
+      end = charCount + range.endOffset;
+      break;
+    }
+
+    charCount += node.length;
+  }
+
+  if (start === null || end === null || end <= start) {
+    return null;
+  }
+
+  return { start, end };
 }
 
 export const PdfPage = ({
@@ -216,6 +275,7 @@ export const PdfPage = ({
         textContainer,
         thread.anchor.selectedText,
         thread.anchor.textPrefix,
+        thread.anchor.textSuffix,
       );
       if (!range) continue;
 
@@ -254,9 +314,6 @@ export const PdfPage = ({
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed) return;
 
-      const selectedText = sel.toString().trim();
-      if (!selectedText || selectedText.length < 3) return;
-
       const textContainer = textLayerRef.current;
       if (!textContainer) return;
 
@@ -264,19 +321,34 @@ export const PdfPage = ({
 
       const range = sel.getRangeAt(0);
       const rect = range.getBoundingClientRect();
-
       const fullText = textContainer.textContent ?? "";
-      const selStart = fullText.indexOf(selectedText);
+      const offsets = getRangeOffsets(textContainer, range);
+
+      let selectedText = sel.toString().trim();
+      let selStart = fullText.indexOf(selectedText);
+      let selEnd =
+        selStart >= 0 ? selStart + selectedText.length : selectedText.length;
+
+      if (offsets) {
+        const rawSelectedText = fullText.slice(offsets.start, offsets.end);
+        const trimmedSelectedText = rawSelectedText.trim();
+        if (!trimmedSelectedText || trimmedSelectedText.length < 3) return;
+
+        const leadingWhitespace = rawSelectedText.indexOf(trimmedSelectedText);
+        selStart = offsets.start + Math.max(0, leadingWhitespace);
+        selEnd = selStart + trimmedSelectedText.length;
+        selectedText = fullText.slice(selStart, selEnd);
+      }
+
+      if (!selectedText || selectedText.length < 3) return;
+
       const textPrefix =
         selStart > 0
           ? fullText.slice(Math.max(0, selStart - 20), selStart)
           : "";
       const textSuffix =
         selStart >= 0
-          ? fullText.slice(
-              selStart + selectedText.length,
-              selStart + selectedText.length + 20,
-            )
+          ? fullText.slice(selEnd, selEnd + 20)
           : "";
 
       onTextSelect({

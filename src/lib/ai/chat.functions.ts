@@ -48,6 +48,12 @@ const chatPayloadSchema = z.object({
       }),
     ),
   }),
+  pages: z.array(
+    z.object({
+      pageNumber: z.number().int().positive(),
+      text: z.string(),
+    }),
+  ),
 })
 
 export const sendChatRequest = createServerFn({ method: 'POST' })

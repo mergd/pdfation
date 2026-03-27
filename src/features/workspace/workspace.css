@@ -1,5 +1,6 @@
 .workspace {
   height: 100svh;
+  overflow: clip;
   display: grid;
   grid-template-rows: auto 1fr;
   background: var(--bg);

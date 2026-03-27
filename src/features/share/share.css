@@ -101,8 +101,13 @@
 }
 
 .share-dialog__select {
-  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
   padding-right: 2rem;
+  cursor: pointer;
+  text-align: left;
 }
 
 .share-dialog__select-chevron {
@@ -110,6 +115,44 @@
   right: var(--space-3);
   color: var(--muted);
   pointer-events: none;
+}
+
+.share-dialog__select-positioner {
+  z-index: 102;
+}
+
+.share-dialog__select-popup {
+  min-width: var(--anchor-width);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--panel-solid);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.share-dialog__select-list {
+  display: grid;
+  padding: var(--space-1);
+}
+
+.share-dialog__select-item {
+  display: flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  outline: none;
+}
+
+.share-dialog__select-item[data-highlighted] {
+  background: var(--panel-inset);
+}
+
+.share-dialog__select-item[data-selected] {
+  color: var(--accent-strong);
 }
 
 .share-dialog__hint,

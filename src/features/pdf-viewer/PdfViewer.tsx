@@ -130,11 +130,17 @@ export const PdfViewer = ({
     const container = scrollRef.current;
     if (!container) return;
 
-    const target = container.querySelector(
+    const target = container.querySelector<HTMLElement>(
       `[data-page="${page}"]`,
     );
     if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const scrollMargin = parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+      container.scrollTo({
+        top: container.scrollTop + targetRect.top - containerRect.top - scrollMargin,
+        behavior: "smooth",
+      });
     }
     setShowGoTo(false);
     setGoToInput("");

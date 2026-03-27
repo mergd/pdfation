@@ -2,6 +2,7 @@ import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 
 import type { AppDocument, AppSettings, AppThread } from '../../../shared/contracts'
 import { DEFAULT_OPENROUTER_MODEL } from '../../../shared/models'
+import { generateDisplayName } from '../name-generator'
 
 interface SettingsRecord {
   key: 'app'
@@ -38,7 +39,7 @@ const defaultSettings = (): AppSettings => ({
   providerMode: 'shared',
   sessionId: crypto.randomUUID(),
   deviceId: crypto.randomUUID(),
-  username: '',
+  username: generateDisplayName(),
 })
 
 let dbPromise: Promise<IDBPDatabase<PdfCoworkerDB>> | null = null
@@ -207,6 +208,20 @@ export const createChatThread = async (documentId: string): Promise<AppThread> =
 export const deleteThread = async (threadId: string): Promise<void> => {
   const database = await getDatabase()
   await database.delete('threads', threadId)
+}
+
+export const deleteAllAnchorThreads = async (documentId: string): Promise<void> => {
+  const database = await getDatabase()
+  const threads = await database.getAllFromIndex('threads', 'by-document', documentId)
+  const tx = database.transaction('threads', 'readwrite')
+
+  for (const thread of threads) {
+    if (thread.kind === 'anchor') {
+      await tx.store.delete(thread.id)
+    }
+  }
+
+  await tx.done
 }
 
 export const renameThread = async (threadId: string, title: string): Promise<AppThread | null> => {

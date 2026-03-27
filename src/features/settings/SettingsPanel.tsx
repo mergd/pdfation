@@ -56,18 +56,18 @@ export const SettingsDialog = ({
           <div className="settings-dialog__body">
             <div className="settings-dialog__field">
               <label className="settings-dialog__label" htmlFor="username">
-                Username
+                Display name
               </label>
               <input
                 id="username"
                 className="settings-dialog__input"
                 onChange={(event) => onChangeUsername(event.target.value)}
-                placeholder="Optional display name"
+                placeholder="e.g. cosmic-falcon"
                 type="text"
                 value={settings.username}
               />
               <p className="settings-dialog__hint">
-                Used when you share a document or leave messages on imported copies.
+                Visible when you share a document or leave messages on imported copies.
               </p>
             </div>
 
@@ -146,26 +146,35 @@ export const SettingsDialog = ({
               </div>
             )}
 
-            <div className="settings-dialog__field">
-              <label className="settings-dialog__label" htmlFor="model-select">
-                Model
-              </label>
-              <div className="settings-dialog__select-wrap">
-                <select
-                  id="model-select"
-                  className="settings-dialog__select"
-                  value={settings.model}
-                  onChange={(event) => onChangeModel(event.target.value)}
-                >
-                  {models.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronIcon />
+            {settings.providerMode === 'shared' ? (
+              <div className="settings-dialog__field">
+                <span className="settings-dialog__label">Model</span>
+                <p className="settings-dialog__hint">
+                  Gemini 2.5 Flash is used on the free shared tier. Bring your own key to choose a model.
+                </p>
               </div>
-            </div>
+            ) : (
+              <div className="settings-dialog__field">
+                <label className="settings-dialog__label" htmlFor="model-select">
+                  Model
+                </label>
+                <div className="settings-dialog__select-wrap">
+                  <select
+                    id="model-select"
+                    className="settings-dialog__select"
+                    value={settings.model}
+                    onChange={(event) => onChangeModel(event.target.value)}
+                  >
+                    {models.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronIcon />
+                </div>
+              </div>
+            )}
           </div>
         </Dialog.Popup>
       </Dialog.Portal>

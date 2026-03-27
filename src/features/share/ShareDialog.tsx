@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Dialog } from '@base-ui-components/react/dialog'
-import { useMutation } from '@tanstack/react-query'
+import { Select } from '@base-ui-components/react/select'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { CaretDown, ShareNetwork, X } from '@phosphor-icons/react'
 
 import type { AppDocument, AppThread } from '../../../shared/contracts'
 import { MAX_SHARE_DURATION_SECONDS } from '../../../shared/share'
-import { createShareLink } from '../../lib/share/share-client'
+import { createShareLink, lookupExistingShare } from '../../lib/share/share-client'
 import { createShareBundle } from '../../lib/share/local-share'
 
 import './share.css'
@@ -29,8 +30,21 @@ export const ShareDialog = ({
   deviceId,
   username,
 }: ShareDialogProps) => {
+  const [dialogOpen, setDialogOpen] = useState(false)
   const [durationSeconds, setDurationSeconds] = useState(MAX_SHARE_DURATION_SECONDS)
   const [copied, setCopied] = useState(false)
+
+  const existingQuery = useQuery({
+    queryKey: ['existing-share', document.id, deviceId],
+    queryFn: () =>
+      lookupExistingShare({
+        deviceId,
+        originalDocumentId: document.id,
+        origin: window.location.origin,
+      }),
+    enabled: dialogOpen,
+    staleTime: 0,
+  })
 
   const shareMutation = useMutation({
     mutationFn: async () => {
@@ -43,6 +57,16 @@ export const ShareDialog = ({
     },
   })
 
+  useEffect(() => {
+    if (!existingQuery.data || shareMutation.data || shareMutation.isPending) return
+
+    shareMutation.mutate()
+  }, [existingQuery.data, shareMutation.data, shareMutation.isPending])
+
+  const shareResult = shareMutation.data ?? existingQuery.data
+  const hasExistingShare = !!existingQuery.data
+  const isLoading = existingQuery.isLoading
+
   const durationLabel = useMemo(
     () =>
       SHARE_DURATION_OPTIONS.find((option) => option.value === durationSeconds)?.label ??
@@ -51,15 +75,17 @@ export const ShareDialog = ({
   )
 
   const handleCopy = async () => {
-    if (!shareMutation.data?.shareUrl) return
-    await navigator.clipboard.writeText(shareMutation.data.shareUrl)
+    if (!shareResult?.shareUrl) return
+    await navigator.clipboard.writeText(shareResult.shareUrl)
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1800)
   }
 
   return (
     <Dialog.Root
+      open={dialogOpen}
       onOpenChange={(open) => {
+        setDialogOpen(open)
         if (!open) {
           shareMutation.reset()
           setCopied(false)
@@ -88,58 +114,13 @@ export const ShareDialog = ({
           </header>
 
           <div className="share-dialog__body">
-            <div className="share-dialog__field">
-              <span className="share-dialog__label">What gets shared</span>
-              <div className="share-dialog__summary">
-                <span className="badge badge-accent">{document.pageCount} pages</span>
-                <span className="badge badge-muted">{threads.length} threads</span>
-                <span className="badge badge-muted">
-                  {username.trim() ? `Shared as ${username.trim()}` : 'Shared anonymously'}
-                </span>
+            {isLoading ? (
+              <div className="share-dialog__field">
+                <span className="share-dialog__hint">Checking for existing share…</span>
               </div>
-            </div>
-
-            <div className="share-dialog__field">
-              <label className="share-dialog__label" htmlFor="share-duration">
-                Link lifetime
-              </label>
-              <div className="share-dialog__select-wrap">
-                <select
-                  id="share-duration"
-                  className="share-dialog__select"
-                  value={durationSeconds}
-                  onChange={(event) => setDurationSeconds(Number(event.target.value))}
-                >
-                  {SHARE_DURATION_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <CaretDown className="share-dialog__select-chevron" size={12} weight="bold" />
-              </div>
-              <p className="share-dialog__hint">
-                Links expire automatically after {durationLabel.toLowerCase()} and re-sharing
-                this file replaces the previous link.
-              </p>
-            </div>
-
-            <div className="share-dialog__field">
-              <button
-                type="button"
-                className="btn btn-primary share-dialog__create"
-                onClick={() => shareMutation.mutate()}
-                disabled={shareMutation.isPending}
-              >
-                {shareMutation.isPending ? 'Creating link…' : 'Create share link'}
-              </button>
-            </div>
-
-            {shareMutation.error ? (
-              <p className="share-dialog__error">{shareMutation.error.message}</p>
             ) : null}
 
-            {shareMutation.data ? (
+            {shareResult ? (
               <div className="share-dialog__result">
                 <label className="share-dialog__label" htmlFor="share-link">
                   Share link
@@ -149,7 +130,7 @@ export const ShareDialog = ({
                     id="share-link"
                     className="share-dialog__input"
                     readOnly
-                    value={shareMutation.data.shareUrl}
+                    value={shareResult.shareUrl}
                   />
                   <button
                     type="button"
@@ -160,9 +141,85 @@ export const ShareDialog = ({
                   </button>
                 </div>
                 <p className="share-dialog__hint">
-                  Expires {new Date(shareMutation.data.expiresAt).toLocaleString()}.
+                  {shareMutation.isPending && hasExistingShare
+                    ? 'Updating shared content…'
+                    : `Expires ${new Date(shareResult.expiresAt).toLocaleString()}.`}
                 </p>
               </div>
+            ) : null}
+
+            {!isLoading && !hasExistingShare && !shareMutation.data ? (
+              <>
+                <div className="share-dialog__field">
+                  <span className="share-dialog__label">What gets shared</span>
+                  <div className="share-dialog__summary">
+                    <span className="badge badge-accent">{document.pageCount} pages</span>
+                    <span className="badge badge-muted">{threads.length} threads</span>
+                    <span className="badge badge-muted">
+                      {username.trim() ? `Shared as ${username.trim()}` : 'Shared anonymously'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="share-dialog__field">
+                  <label className="share-dialog__label" htmlFor="share-duration">
+                    Link lifetime
+                  </label>
+                  <div className="share-dialog__select-wrap">
+                    <Select.Root
+                      value={durationSeconds}
+                      items={SHARE_DURATION_OPTIONS}
+                      onValueChange={(value) => {
+                        if (value !== null) {
+                          setDurationSeconds(value)
+                        }
+                      }}
+                    >
+                      <Select.Trigger id="share-duration" className="share-dialog__select">
+                        <Select.Value />
+                        <Select.Icon className="share-dialog__select-chevron">
+                          <CaretDown size={12} weight="bold" />
+                        </Select.Icon>
+                      </Select.Trigger>
+                      <Select.Portal>
+                        <Select.Positioner className="share-dialog__select-positioner" sideOffset={6}>
+                          <Select.Popup className="share-dialog__select-popup">
+                            <Select.List className="share-dialog__select-list">
+                              {SHARE_DURATION_OPTIONS.map((option) => (
+                                <Select.Item
+                                  key={option.value}
+                                  value={option.value}
+                                  className="share-dialog__select-item"
+                                >
+                                  <Select.ItemText>{option.label}</Select.ItemText>
+                                </Select.Item>
+                              ))}
+                            </Select.List>
+                          </Select.Popup>
+                        </Select.Positioner>
+                      </Select.Portal>
+                    </Select.Root>
+                  </div>
+                  <p className="share-dialog__hint">
+                    Links expire automatically after {durationLabel.toLowerCase()}.
+                  </p>
+                </div>
+
+                <div className="share-dialog__field">
+                  <button
+                    type="button"
+                    className="btn btn-primary share-dialog__create"
+                    onClick={() => shareMutation.mutate()}
+                    disabled={shareMutation.isPending}
+                  >
+                    {shareMutation.isPending ? 'Creating link…' : 'Create share link'}
+                  </button>
+                </div>
+              </>
+            ) : null}
+
+            {shareMutation.error ? (
+              <p className="share-dialog__error">{shareMutation.error.message}</p>
             ) : null}
           </div>
         </Dialog.Popup>

@@ -128,8 +128,9 @@ export const createDocumentShare = createServerFn({ method: 'POST' })
       (sum, record) => (record.token === existingRecord?.token ? sum : sum + record.byteSize),
       0,
     )
-    const token = createShareToken()
-    const bundleKey = shareBundleKey(token)
+    const reuseExisting = existingRecord && !isExpired(existingRecord.expiresAt)
+    const token = reuseExisting ? existingRecord.token : createShareToken()
+    const bundleKey = reuseExisting ? existingRecord.bundleKey : shareBundleKey(token)
     const bundle: DocumentShareBundleV1 = {
       ...data.bundle,
       sharedAt: createdAt,
@@ -151,7 +152,7 @@ export const createDocumentShare = createServerFn({ method: 'POST' })
     const record: ShareRecord = {
       token,
       bundleKey,
-      createdAt,
+      createdAt: reuseExisting ? existingRecord.createdAt : createdAt,
       documentName: bundle.document.name,
       expiresAt,
       pageCount: bundle.document.pageCount,
@@ -161,7 +162,7 @@ export const createDocumentShare = createServerFn({ method: 'POST' })
       originalDocumentId: bundle.document.originalDocumentId,
     }
 
-    if (existingRecord) {
+    if (existingRecord && !reuseExisting) {
       await deleteShareRecord(existingRecord)
     }
 
@@ -182,6 +183,32 @@ export const createDocumentShare = createServerFn({ method: 'POST' })
     return {
       token,
       expiresAt,
+      shareUrl: `${data.origin.replace(/\/$/, '')}/share/${token}`,
+    }
+  })
+
+export const lookupDocumentShare = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      deviceId: z.string().min(1),
+      originalDocumentId: z.string().min(1),
+      origin: z.string().url(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    ensureShareBindings()
+
+    const token = await env.SHARES.get(
+      shareDocumentKey(data.deviceId, data.originalDocumentId),
+    )
+    if (!token) return null
+
+    const record = await env.SHARES.get<ShareRecord>(shareRecordKey(token), 'json')
+    if (!record || isExpired(record.expiresAt)) return null
+
+    return {
+      token: record.token,
+      expiresAt: record.expiresAt,
       shareUrl: `${data.origin.replace(/\/$/, '')}/share/${token}`,
     }
   })

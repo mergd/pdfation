@@ -19,6 +19,7 @@ import { sendChatRequest } from "../../lib/ai/chat-client";
 import {
   type DocumentWorkspace,
   createChatThread,
+  deleteAllAnchorThreads,
   deleteThread,
   getDocumentWorkspace,
   renameThread,
@@ -68,6 +69,7 @@ export const WorkspacePage = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [popoverThreadId, setPopoverThreadId] = useState<string | null>(null);
   const [popoverAnchor, setPopoverAnchor] = useState<Element | null>(null);
+  const [draftCommentThread, setDraftCommentThread] = useState<AppThread | null>(null);
 
   const navigateBack = () => {
     const go = () => navigate({ to: "/" });
@@ -117,20 +119,31 @@ export const WorkspacePage = () => {
   const activeDocument = workspace?.document ?? null;
   const settings: AppSettings | null = workspace?.settings ?? null;
   const threads: AppThread[] = workspace?.threads ?? EMPTY_THREADS;
+  const viewerThreads = draftCommentThread
+    ? replaceThread(threads, draftCommentThread)
+    : threads;
 
   const resolvedThreadId =
-    activeThreadId && threads.some((t) => t.id === activeThreadId)
+    activeThreadId && draftCommentThread?.id === activeThreadId
       ? activeThreadId
-      : threads[0]?.id ?? null;
+      : activeThreadId && threads.some((t) => t.id === activeThreadId)
+        ? activeThreadId
+        : threads[0]?.id ?? null;
 
   const activeThread = useMemo(
-    () => threads.find((t) => t.id === resolvedThreadId) ?? null,
-    [threads, resolvedThreadId],
+    () =>
+      (draftCommentThread && draftCommentThread.id === resolvedThreadId
+        ? draftCommentThread
+        : threads.find((t) => t.id === resolvedThreadId)) ?? null,
+    [draftCommentThread, threads, resolvedThreadId],
   );
 
   const popoverThread = useMemo(
-    () => threads.find((t) => t.id === popoverThreadId) ?? null,
-    [popoverThreadId, threads],
+    () =>
+      (draftCommentThread && draftCommentThread.id === popoverThreadId
+        ? draftCommentThread
+        : threads.find((t) => t.id === popoverThreadId)) ?? null,
+    [draftCommentThread, popoverThreadId, threads],
   );
 
   const sendMessageMutation = useMutation({ mutationFn: sendChatRequest });
@@ -140,6 +153,14 @@ export const WorkspacePage = () => {
     updateWorkspace((current) =>
       current ? { ...current, settings: next } : current,
     );
+  };
+
+  const clearDraftCommentThread = (threadIdToKeep?: string | null) => {
+    setDraftCommentThread((current) => {
+      if (!current) return current;
+      if (threadIdToKeep && current.id === threadIdToKeep) return current;
+      return null;
+    });
   };
 
   const sendToThread = async (thread: AppThread, value: string) => {
@@ -164,6 +185,7 @@ export const WorkspacePage = () => {
     updateWorkspace((c) =>
       c ? { ...c, threads: replaceThread(c.threads, optimistic) } : c,
     );
+    setDraftCommentThread((d) => (d?.id === thread.id ? null : d));
 
     try {
       const response = await sendMessageMutation.mutateAsync({
@@ -192,6 +214,10 @@ export const WorkspacePage = () => {
         },
         prompt: value,
         context: buildDocumentContext(activeDocument, optimistic, value),
+        pages: activeDocument.pages.map((p) => ({
+          pageNumber: p.pageNumber,
+          text: p.text,
+        })),
       });
 
       const completed: AppThread = {
@@ -228,12 +254,16 @@ export const WorkspacePage = () => {
   };
 
   const handleSendPopoverMessage = async (threadId: string, value: string) => {
-    const thread = threads.find((t) => t.id === threadId);
+    const thread =
+      (draftCommentThread?.id === threadId ? draftCommentThread : null) ??
+      threads.find((t) => t.id === threadId);
     if (!thread) return;
     await sendToThread(thread, value);
   };
 
   const handleCreateThread = async () => {
+    clearDraftCommentThread();
+
     if (!activeDocument) return;
     const thread = await createChatThread(activeDocument.id);
     updateWorkspace((c) =>
@@ -243,6 +273,8 @@ export const WorkspacePage = () => {
   };
 
   const handleDeleteThread = async (threadId: string) => {
+    clearDraftCommentThread(threadId);
+
     await deleteThread(threadId);
     updateWorkspace((c) =>
       c ? { ...c, threads: c.threads.filter((t) => t.id !== threadId) } : c,
@@ -259,12 +291,26 @@ export const WorkspacePage = () => {
     );
   };
 
+  const handleClearAllComments = async () => {
+    if (!activeDocument) return;
+
+    await deleteAllAnchorThreads(activeDocument.id);
+    updateWorkspace((c) =>
+      c ? { ...c, threads: c.threads.filter((t) => t.kind !== "anchor") } : c,
+    );
+    clearDraftCommentThread();
+    if (activeThread?.kind === "anchor") setActiveThreadId(null);
+    if (popoverThread?.kind === "anchor") setPopoverThreadId(null);
+  };
+
   const handleCreateComment = async (payload: {
     pageNumber: number;
     selectedText: string;
     textPrefix: string;
     textSuffix: string;
   }) => {
+    clearDraftCommentThread();
+
     if (!activeDocument) return;
 
     const newThread: AppThread = {
@@ -282,12 +328,14 @@ export const WorkspacePage = () => {
       updatedAt: new Date().toISOString(),
     };
 
-    await saveThread(newThread);
-    updateWorkspace((c) =>
-      c ? { ...c, threads: replaceThread(c.threads, newThread) } : c,
-    );
+    setDraftCommentThread(newThread);
     setActiveThreadId(newThread.id);
-    setPopoverThreadId(newThread.id);
+
+    if (sidebarOpen) {
+      setPopoverThreadId(null);
+    } else {
+      setPopoverThreadId(newThread.id);
+    }
   };
 
   useEffect(() => {
@@ -296,18 +344,36 @@ export const WorkspacePage = () => {
       return;
     }
 
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 20;
+
     const findAnchor = () => {
+      if (cancelled) return;
+
       const el = document.querySelector<HTMLElement>(
         `[data-thread-id="${popoverThreadId}"]`,
       );
       if (el) {
         setPopoverAnchor(el);
-      } else {
-        requestAnimationFrame(findAnchor);
+        return;
       }
+
+      if (attempts >= maxAttempts) {
+        setPopoverAnchor(null);
+        setSidebarOpen(true);
+        return;
+      }
+
+      attempts += 1;
+      requestAnimationFrame(findAnchor);
     };
 
     requestAnimationFrame(findAnchor);
+
+    return () => {
+      cancelled = true;
+    };
   }, [popoverThreadId]);
 
   const handleQuoteInChat = (quote: Quote) => {
@@ -376,7 +442,13 @@ export const WorkspacePage = () => {
 
     container?.addEventListener("scroll", handleContainerScroll, { passive: true });
 
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    const containerRect = container!.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const scrollMargin = parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+    container!.scrollTo({
+      top: container!.scrollTop + targetRect.top - containerRect.top - scrollMargin,
+      behavior: "smooth",
+    });
     target.classList.add("pdf-page-card--flash");
     setTimeout(() => target.classList.remove("pdf-page-card--flash"), 1200);
 
@@ -397,6 +469,7 @@ export const WorkspacePage = () => {
   };
 
   const handleHighlightClick = (threadId: string) => {
+    clearDraftCommentThread(threadId);
     setActiveThreadId(threadId);
 
     if (sidebarOpen) {
@@ -412,14 +485,50 @@ export const WorkspacePage = () => {
     setSidebarOpen(true);
   };
 
-  const closePopover = () => {
-    if (popoverThread && popoverThread.messages.length === 0) {
-      void deleteThread(popoverThread.id);
-      updateWorkspace((c) =>
-        c ? { ...c, threads: c.threads.filter((t) => t.id !== popoverThread.id) } : c,
-      );
-      if (activeThreadId === popoverThread.id) setActiveThreadId(null);
+  const handleSelectThread = (threadId: string) => {
+    clearDraftCommentThread(threadId);
+    setPopoverThreadId(null);
+    setActiveThreadId(threadId);
+  };
+
+  const closeSidebar = () => {
+    if (activeThread?.kind === "anchor") {
+      setPopoverThreadId(activeThread.id);
+    } else {
+      clearDraftCommentThread();
+      setPopoverThreadId(null);
     }
+
+    setSidebarOpen(false);
+  };
+
+  const openSidebar = () => {
+    setPopoverThreadId(null);
+    setSidebarOpen(true);
+  };
+
+  const toggleSidebar = () => {
+    if (sidebarOpen) {
+      closeSidebar();
+      return;
+    }
+
+    openSidebar();
+  };
+
+  const closePopover = () => {
+    if (popoverThread?.kind === "anchor" && popoverThread.messages.length === 0) {
+      if (draftCommentThread?.id === popoverThread.id) {
+        clearDraftCommentThread();
+      } else {
+        void deleteThread(popoverThread.id);
+        updateWorkspace((c) =>
+          c ? { ...c, threads: c.threads.filter((t) => t.id !== popoverThread.id) } : c,
+        );
+        if (activeThreadId === popoverThread.id) setActiveThreadId(null);
+      }
+    }
+
     setPopoverThreadId(null);
   };
 
@@ -545,7 +654,7 @@ export const WorkspacePage = () => {
 
           <button
             className="btn btn-ghost"
-            onClick={() => setSidebarOpen((v) => !v)}
+            onClick={toggleSidebar}
             type="button"
             title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
           >
@@ -557,7 +666,7 @@ export const WorkspacePage = () => {
       <PdfViewer
         document={activeDocument}
         selectedThreadId={resolvedThreadId}
-        threads={threads}
+        threads={viewerThreads}
         onCreateComment={handleCreateComment}
         onQuoteInChat={handleQuoteInChat}
         onSelectThread={handleHighlightClick}
@@ -577,17 +686,18 @@ export const WorkspacePage = () => {
 
       <Sidebar
         open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
+        onClose={closeSidebar}
         threads={threads}
         activeThreadId={resolvedThreadId}
         activeThread={activeThread}
         isSending={sendMessageMutation.isPending}
         quotes={quotes}
         onSendMessage={handleSendMessage}
-        onSelectThread={setActiveThreadId}
+        onSelectThread={handleSelectThread}
         onCreateThread={handleCreateThread}
         onDeleteThread={handleDeleteThread}
         onRenameThread={handleRenameThread}
+        onClearAllComments={handleClearAllComments}
         onRemoveQuote={(index) => setQuotes((prev) => prev.filter((_, i) => i !== index))}
         onClearQuotes={() => setQuotes([])}
         onQuoteClick={handleScrollToPage}

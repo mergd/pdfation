@@ -37,6 +37,7 @@ export const ChatPanel = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messages = useMemo(() => thread?.messages ?? [], [thread]);
+  const isAnchorThread = thread?.kind === "anchor";
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -70,9 +71,25 @@ export const ChatPanel = ({
   return (
     <div className="chat-panel">
       <div className="chat-panel__messages">
+        {isAnchorThread && thread?.anchor && (
+          <p className="chat-panel__context">
+            Commenting on{" "}
+            <button
+              type="button"
+              className="page-ref"
+              onClick={() => onPageClick(thread.anchor!.pageNumber)}
+            >
+              p.{thread.anchor.pageNumber}
+            </button>
+            {" "}&ldquo;{thread.anchor.selectedText}&rdquo;
+          </p>
+        )}
+
         {messages.length === 0 && (
           <p className="chat-panel__empty">
-            Ask about the whole document, or highlight text and quote it here.
+            {isAnchorThread
+              ? "Ask a question about this passage."
+              : "Ask about the whole document, or highlight text and quote it here."}
           </p>
         )}
 
@@ -89,9 +106,9 @@ export const ChatPanel = ({
                 })}
               </time>
             </div>
-            <p className="chat-msg__body">
+            <div className="chat-msg__body">
               <MessageBody content={msg.content} onPageClick={onPageClick} />
-            </p>
+            </div>
             {msg.sourcePages.length > 0 && (
               <div className="chat-msg__pages">
                 {msg.sourcePages.map((p) => (
@@ -172,7 +189,9 @@ export const ChatPanel = ({
             className="chat-panel__textarea"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Ask about this document…"
+            placeholder={
+              isAnchorThread ? "Add a comment on this passage…" : "Ask about this document…"
+            }
             rows={2}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
