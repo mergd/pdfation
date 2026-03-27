@@ -23,6 +23,7 @@ interface SidebarProps {
   onClearQuotes: () => void
   onQuoteClick: (pageNumber: number) => void
   onPageClick: (pageNumber: number) => void
+  onAnchorClick: (threadId: string, pageNumber: number) => void
 }
 
 export const Sidebar = ({
@@ -43,6 +44,7 @@ export const Sidebar = ({
   onClearQuotes,
   onQuoteClick,
   onPageClick,
+  onAnchorClick,
 }: SidebarProps) => {
   return (
     <aside className={`sidebar ${open ? 'sidebar--open' : ''}`}>
@@ -66,6 +68,7 @@ export const Sidebar = ({
           onClearQuotes={onClearQuotes}
           onQuoteClick={onQuoteClick}
           onPageClick={onPageClick}
+          onAnchorClick={onAnchorClick}
         />
       </div>
     </aside>

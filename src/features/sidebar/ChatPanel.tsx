@@ -21,6 +21,7 @@ interface ChatPanelProps {
   onClearQuotes: () => void;
   onQuoteClick: (pageNumber: number) => void;
   onPageClick: (pageNumber: number) => void;
+  onAnchorClick: (threadId: string, pageNumber: number) => void;
 }
 
 export const ChatPanel = ({
@@ -32,6 +33,7 @@ export const ChatPanel = ({
   onClearQuotes,
   onQuoteClick,
   onPageClick,
+  onAnchorClick,
 }: ChatPanelProps) => {
   const [draft, setDraft] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -72,17 +74,14 @@ export const ChatPanel = ({
     <div className="chat-panel">
       <div className="chat-panel__messages">
         {isAnchorThread && thread?.anchor && (
-          <p className="chat-panel__context">
-            Commenting on{" "}
-            <button
-              type="button"
-              className="page-ref"
-              onClick={() => onPageClick(thread.anchor!.pageNumber)}
-            >
-              p.{thread.anchor.pageNumber}
-            </button>
+          <button
+            type="button"
+            className="chat-panel__context"
+            onClick={() => onAnchorClick(thread.id, thread.anchor!.pageNumber)}
+          >
+            <span className="page-ref">p.{thread.anchor.pageNumber}</span>
             {" "}&ldquo;{thread.anchor.selectedText}&rdquo;
-          </p>
+          </button>
         )}
 
         {messages.length === 0 && (

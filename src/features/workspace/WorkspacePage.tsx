@@ -381,6 +381,22 @@ export const WorkspacePage = () => {
     setSidebarOpen(true);
   };
 
+  const handleScrollToAnchor = (threadId: string, pageNumber: number) => {
+    handleScrollToPage(pageNumber);
+
+    requestAnimationFrame(() => {
+      const marks = document.querySelectorAll<HTMLElement>(
+        `.pdf-highlight[data-thread-id="${threadId}"]`,
+      );
+      for (const mark of marks) {
+        mark.classList.add("pdf-highlight--flash");
+      }
+      setTimeout(() => {
+        for (const mark of marks) mark.classList.remove("pdf-highlight--flash");
+      }, 1400);
+    });
+  };
+
   const handleScrollToPage = (pageNumber: number) => {
     const container = document.querySelector<HTMLElement>(".pdf-viewer__scroll");
     const target = container?.querySelector<HTMLElement>(`[data-page="${pageNumber}"]`);
@@ -702,6 +718,7 @@ export const WorkspacePage = () => {
         onClearQuotes={() => setQuotes([])}
         onQuoteClick={handleScrollToPage}
         onPageClick={handleScrollToPage}
+        onAnchorClick={handleScrollToAnchor}
       />
     </main>
   );

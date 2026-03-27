@@ -390,6 +390,17 @@
   box-shadow: 0 0 0 1.5px rgba(255, 196, 0, 0.6);
 }
 
+.pdf-highlight--flash {
+  animation: highlight-flash 1.4s ease;
+}
+
+@keyframes highlight-flash {
+  0%, 100% { background: rgba(255, 196, 0, 0.44); box-shadow: 0 0 0 1.5px rgba(255, 196, 0, 0.6); }
+  20% { background: rgba(255, 196, 0, 0.7); box-shadow: 0 0 0 3px rgba(255, 196, 0, 0.8); }
+  40% { background: rgba(255, 196, 0, 0.44); box-shadow: 0 0 0 1.5px rgba(255, 196, 0, 0.6); }
+  60% { background: rgba(255, 196, 0, 0.65); box-shadow: 0 0 0 2.5px rgba(255, 196, 0, 0.7); }
+}
+
 /* ─── Selection popover ─── */
 
 .selection-popover {

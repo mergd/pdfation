@@ -3,6 +3,7 @@ import { Dialog } from '@base-ui-components/react/dialog'
 import { Select } from '@base-ui-components/react/select'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { CaretDown, ShareNetwork, X } from '@phosphor-icons/react'
+import { formatDistanceToNow } from 'date-fns'
 
 import type { AppDocument, AppThread } from '../../../shared/contracts'
 import { MAX_SHARE_DURATION_SECONDS } from '../../../shared/share'
@@ -143,7 +144,7 @@ export const ShareDialog = ({
                 <p className="share-dialog__hint">
                   {shareMutation.isPending && hasExistingShare
                     ? 'Updating shared content…'
-                    : `Expires ${new Date(shareResult.expiresAt).toLocaleString()}.`}
+                    : `Expires in ${formatDistanceToNow(new Date(shareResult.expiresAt))}.`}
                 </p>
               </div>
             ) : null}

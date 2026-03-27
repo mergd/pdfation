@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from '@tanstack/react-router'
+import { formatDistanceToNow } from 'date-fns'
 
 import type { AppBootstrap } from '../../lib/storage/db'
 import { getSettings, updateSettings } from '../../lib/storage/db'
@@ -84,7 +85,7 @@ export const ShareImportPage = () => {
                 {shareQuery.data.threads.length} threads
               </span>
               <span className="badge badge-muted">
-                Expires {new Date(shareQuery.data.expiresAt).toLocaleString()}
+                Expires in {formatDistanceToNow(new Date(shareQuery.data.expiresAt))}
               </span>
             </div>
 
