@@ -213,6 +213,55 @@ export const lookupDocumentShare = createServerFn({ method: 'POST' })
     }
   })
 
+export const syncDocumentShare = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      token: z.string().min(1).max(64),
+      bundle: shareBundleSchema,
+    }),
+  )
+  .handler(async ({ data }) => {
+    ensureShareBindings()
+
+    const record = await env.SHARES.get<ShareRecord>(shareRecordKey(data.token), 'json')
+    if (!record || isExpired(record.expiresAt)) {
+      return { synced: false } as const
+    }
+
+    if (
+      data.bundle.sharedByDeviceId !== record.sharedByDeviceId ||
+      data.bundle.document.originalDocumentId !== record.originalDocumentId
+    ) {
+      return { synced: false } as const
+    }
+
+    const bundle: DocumentShareBundleV1 = {
+      ...data.bundle,
+      sharedAt: record.createdAt,
+      expiresAt: record.expiresAt,
+    }
+    const bundleJson = JSON.stringify(bundle)
+    const byteSize = encoder.encode(bundleJson).byteLength
+
+    if (byteSize > MAX_TOTAL_SHARED_BYTES) {
+      return { synced: false } as const
+    }
+
+    const expiration = Math.floor(new Date(record.expiresAt).getTime() / 1000)
+    const updatedRecord: ShareRecord = { ...record, byteSize }
+
+    await Promise.all([
+      env.SHARE_BUNDLES.put(record.bundleKey, bundleJson, {
+        httpMetadata: { contentType: 'application/json' },
+      }),
+      env.SHARES.put(shareRecordKey(data.token), JSON.stringify(updatedRecord), {
+        expiration,
+      }),
+    ])
+
+    return { synced: true } as const
+  })
+
 export const getDocumentShare = createServerFn({ method: 'POST' })
   .inputValidator(shareLookupInputSchema)
   .handler(async ({ data }) => readBundle(data.token))

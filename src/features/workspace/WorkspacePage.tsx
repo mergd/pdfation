@@ -13,6 +13,7 @@ import { CommentPopover } from "../pdf-viewer/CommentPopover";
 import { Sidebar } from "../sidebar/Sidebar";
 import { SettingsDialog } from "../settings/SettingsPanel";
 import { ShareDialog } from "../share/ShareDialog";
+import { useShareAutoSync } from "../share/useShareAutoSync";
 import { defaultModelForProvider } from "../../../shared/models";
 import { buildDocumentContext } from "../../lib/ai/context";
 import { sendChatRequest } from "../../lib/ai/chat-client";
@@ -145,6 +146,8 @@ export const WorkspacePage = () => {
         : threads.find((t) => t.id === popoverThreadId)) ?? null,
     [draftCommentThread, popoverThreadId, threads],
   );
+
+  useShareAutoSync(activeDocument, threads, settings?.deviceId ?? null, settings?.username ?? '');
 
   const sendMessageMutation = useMutation({ mutationFn: sendChatRequest });
 

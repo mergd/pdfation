@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Dialog } from '@base-ui-components/react/dialog'
 import { Select } from '@base-ui-components/react/select'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CaretDown, ShareNetwork, X } from '@phosphor-icons/react'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -9,6 +9,7 @@ import type { AppDocument, AppThread } from '../../../shared/contracts'
 import { MAX_SHARE_DURATION_SECONDS } from '../../../shared/share'
 import { createShareLink, lookupExistingShare } from '../../lib/share/share-client'
 import { createShareBundle } from '../../lib/share/local-share'
+import { SHARE_LOOKUP_QUERY_KEY } from './useShareAutoSync'
 
 import './share.css'
 
@@ -31,6 +32,7 @@ export const ShareDialog = ({
   deviceId,
   username,
 }: ShareDialogProps) => {
+  const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [durationSeconds, setDurationSeconds] = useState(MAX_SHARE_DURATION_SECONDS)
   const [copied, setCopied] = useState(false)
@@ -55,6 +57,9 @@ export const ShareDialog = ({
         expiresInSeconds: durationSeconds,
         origin: window.location.origin,
       })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [SHARE_LOOKUP_QUERY_KEY, deviceId, document.id] })
     },
   })
 
