@@ -3,6 +3,7 @@ import { setResponseStatus } from '@tanstack/react-start/server'
 import { z } from 'zod'
 
 import { createOpenRouterReply, createOpenAiReply } from './chat.server'
+import { generateThreadTitle } from './title.server'
 import { beginRateLimitedRequest } from '../server/rate-limit.server'
 
 const messageSchema = z.object({
@@ -55,6 +56,27 @@ const chatPayloadSchema = z.object({
     }),
   ),
 })
+
+const generateTitleSchema = z.object({
+  providerMode: z.enum(['shared', 'byo', 'openai']),
+  byoOpenRouterKey: z.string().optional(),
+  byoOpenAiKey: z.string().optional(),
+  model: z.string().optional(),
+  userMessage: z.string(),
+  assistantMessage: z.string(),
+  documentName: z.string(),
+})
+
+export const generateTitle = createServerFn({ method: 'POST' })
+  .inputValidator(generateTitleSchema)
+  .handler(async ({ data }) => {
+    try {
+      const title = await generateThreadTitle(data)
+      return { title }
+    } catch {
+      return { title: null }
+    }
+  })
 
 export const sendChatRequest = createServerFn({ method: 'POST' })
   .inputValidator(chatPayloadSchema)

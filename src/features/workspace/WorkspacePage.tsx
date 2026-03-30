@@ -16,7 +16,7 @@ import { ShareDialog } from "../share/ShareDialog";
 import { useShareAutoSync } from "../share/useShareAutoSync";
 import { defaultModelForProvider } from "../../../shared/models";
 import { buildDocumentContext } from "../../lib/ai/context";
-import { sendChatRequest } from "../../lib/ai/chat-client";
+import { sendChatRequest, generateChatTitle } from "../../lib/ai/chat-client";
 import {
   type DocumentWorkspace,
   createChatThread,
@@ -228,6 +228,37 @@ export const WorkspacePage = () => {
         messages: [...optimistic.messages, response.reply],
         updatedAt: new Date().toISOString(),
       };
+
+      if (
+        completed.kind === "global" &&
+        completed.messages.length === 2 &&
+        /^Chat \d+$/.test(completed.title) &&
+        settings
+      ) {
+        const threadId = completed.id;
+        void generateChatTitle({
+          providerMode: settings.providerMode,
+          byoOpenRouterKey: settings.providerMode === "byo" ? settings.byoOpenRouterKey.trim() : undefined,
+          byoOpenAiKey: settings.providerMode === "openai" ? settings.byoOpenAiKey.trim() : undefined,
+          model: settings.model || undefined,
+          userMessage: completed.messages[0].content,
+          assistantMessage: completed.messages[1].content,
+          documentName: activeDocument?.name ?? "document",
+        }).then((title) => {
+          if (!title) return;
+          void renameThread(threadId, title);
+          updateWorkspace((c) => {
+            if (!c) return c;
+            return {
+              ...c,
+              threads: c.threads.map((t) =>
+                t.id === threadId ? { ...t, title } : t,
+              ),
+            };
+          });
+        });
+      }
+
       await saveThread(completed);
       updateWorkspace((c) =>
         c ? { ...c, threads: replaceThread(c.threads, completed) } : c,

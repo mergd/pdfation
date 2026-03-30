@@ -1,8 +1,13 @@
-import { Children, cloneElement, isValidElement, type ReactNode } from 'react'
+import { Children, cloneElement, isValidElement, useState, type ReactNode } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
 
 const PAGE_REF_PATTERN = /\[p\.\s*(\d+)\]/g
+
+const TRUNCATE_LINES = 4
 
 function splitPageRefs(
   text: string,
@@ -67,6 +72,46 @@ function walkChildren(
   })
 }
 
+function CollapsibleBlockquote({ children }: { children: ReactNode }) {
+  const [expanded, setExpanded] = useState(false)
+
+  const text = extractText(children)
+  const needsTruncation = text.length > 200
+
+  if (!needsTruncation) {
+    return <blockquote>{children}</blockquote>
+  }
+
+  return (
+    <div className="blockquote-wrapper">
+      <blockquote className={expanded ? '' : 'blockquote--truncated'}>
+        {children}
+      </blockquote>
+      <button
+        type="button"
+        className="blockquote__toggle"
+        onClick={(e) => {
+          e.stopPropagation()
+          setExpanded(!expanded)
+        }}
+      >
+        {expanded ? 'Show less' : 'Show more'}
+      </button>
+    </div>
+  )
+}
+
+function extractText(node: ReactNode): string {
+  if (typeof node === 'string') return node
+  if (typeof node === 'number') return String(node)
+  if (!node) return ''
+  if (Array.isArray(node)) return node.map(extractText).join('')
+  if (isValidElement<{ children?: ReactNode }>(node)) {
+    return extractText(node.props.children)
+  }
+  return ''
+}
+
 interface MessageBodyProps {
   content: string
   onPageClick: (pageNumber: number) => void
@@ -78,7 +123,8 @@ export const MessageBody = ({ content, onPageClick }: MessageBodyProps) => {
   return (
     <div className="message-body">
       <Markdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
         components={{
           p: ({ children }) => <p>{walk(children)}</p>,
           li: ({ children }) => <li>{walk(children)}</li>,
@@ -89,7 +135,7 @@ export const MessageBody = ({ content, onPageClick }: MessageBodyProps) => {
           h3: ({ children }) => <h3>{walk(children)}</h3>,
           h4: ({ children }) => <h4>{walk(children)}</h4>,
           blockquote: ({ children }) => (
-            <blockquote>{walk(children)}</blockquote>
+            <CollapsibleBlockquote>{walk(children)}</CollapsibleBlockquote>
           ),
         }}
       >

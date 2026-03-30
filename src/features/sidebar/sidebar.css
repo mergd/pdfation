@@ -540,7 +540,8 @@
   border-radius: var(--radius-sm);
   display: grid;
   gap: 2px;
-  max-width: 94%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .chat-msg__header {
@@ -615,8 +616,36 @@
 .chat-msg__body blockquote {
   margin: 0.4em 0;
   padding: 0.25em 0.75em;
-  border-left: 3px solid var(--border-strong, var(--border));
-  color: var(--muted);
+  border-left: 3px solid var(--accent, var(--border-strong, var(--border)));
+  color: var(--text);
+  opacity: 0.85;
+}
+
+.chat-msg__body .blockquote-wrapper {
+  margin: 0.4em 0;
+}
+
+.chat-msg__body .blockquote-wrapper blockquote {
+  margin: 0;
+}
+
+.chat-msg__body blockquote.blockquote--truncated {
+  max-height: 5em;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+}
+
+.chat-msg__body .blockquote__toggle {
+  display: block;
+  border: none;
+  background: none;
+  color: var(--accent-strong, var(--accent));
+  font-size: var(--text-xs);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 0;
+  margin-top: 2px;
 }
 
 .chat-msg--user .chat-msg__body blockquote {
@@ -674,6 +703,7 @@
 
 .chat-msg__pages {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-1);
   margin-top: 2px;
 }

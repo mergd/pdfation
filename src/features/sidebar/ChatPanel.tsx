@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppThread } from "../../../shared/contracts";
 import type { Quote } from "../workspace/WorkspacePage";
 import { MessageBody } from "./MessageBody";
+import { formatRelativeDate } from "../../lib/format-date";
 
 const QUOTE_COLORS = [
   { bg: "rgba(138, 180, 248, 0.14)", border: "#8ab4f8", text: "#aecbfa" },
@@ -98,11 +99,8 @@ export const ChatPanel = ({
               <span className="chat-msg__role">
                 {msg.role === "assistant" ? "AI" : msg.authorName?.trim() || "You"}
               </span>
-              <time className="chat-msg__time">
-                {new Date(msg.createdAt).toLocaleTimeString([], {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
+              <time className="chat-msg__time" title={new Date(msg.createdAt).toLocaleString()}>
+                {formatRelativeDate(msg.createdAt)}
               </time>
             </div>
             <div className="chat-msg__body">
