@@ -123,6 +123,18 @@ export const ChatPanel = ({
             )}
           </div>
         ))}
+        {isSending && (
+          <div className="chat-msg chat-msg--assistant">
+            <div className="chat-msg__header">
+              <span className="chat-msg__role">AI</span>
+            </div>
+            <div className="chat-msg__body">
+              <div className="typing-indicator">
+                <span /><span /><span />
+              </div>
+            </div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 

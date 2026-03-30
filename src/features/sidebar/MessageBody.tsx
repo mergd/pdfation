@@ -5,7 +5,7 @@ import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
 
-const PAGE_REF_PATTERN = /\[p\.\s*(\d+)\]/g
+const PAGE_REF_PATTERN = /\[p\.\s*(\d+(?:\s*,\s*\d+)*)\]/g
 
 const TRUNCATE_LINES = 4
 
@@ -22,21 +22,25 @@ function splitPageRefs(
     if (match.index > lastIndex) {
       parts.push(text.slice(lastIndex, match.index))
     }
-    const page = Number(match[1])
-    parts.push(
-      <button
-        key={`pr-${match.index}`}
-        type="button"
-        className="page-ref"
-        onClick={(e) => {
-          e.stopPropagation()
-          onPageClick(page)
-        }}
-        title={`Go to page ${page}`}
-      >
-        p.{page}
-      </button>,
-    )
+    const pages = match[1].split(',').map((s) => Number(s.trim())).filter(Boolean)
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i]
+      if (i > 0) parts.push(' ')
+      parts.push(
+        <button
+          key={`pr-${match.index}-${page}`}
+          type="button"
+          className="page-ref"
+          onClick={(e) => {
+            e.stopPropagation()
+            onPageClick(page)
+          }}
+          title={`Go to page ${page}`}
+        >
+          p.{page}
+        </button>,
+      )
+    }
     lastIndex = match.index + match[0].length
   }
 
