@@ -63,6 +63,8 @@ export const WorkspacePage = () => {
   const workspaceQuery = useQuery({
     queryKey: ["document-workspace", documentId],
     queryFn: () => getDocumentWorkspace(documentId),
+    staleTime: Infinity,
+    gcTime: 10 * 60 * 1000,
   });
 
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);

@@ -14,6 +14,8 @@ import "./pdf-viewer.css";
 
 GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
+const pdfCache = new Map<string, PDFDocumentProxy>();
+
 interface TextSelection {
   pageNumber: number;
   selectedText: string;
@@ -56,11 +58,16 @@ export const PdfViewer = ({
 
   useEffect(() => {
     let cancelled = false;
-    let currentPdf: PDFDocumentProxy | null = null;
 
     const loadPdf = async () => {
       if (!appDocument) {
         setPdf(null);
+        return;
+      }
+
+      const cached = pdfCache.get(appDocument.id);
+      if (cached) {
+        setPdf(cached);
         return;
       }
 
@@ -73,7 +80,7 @@ export const PdfViewer = ({
         return;
       }
 
-      currentPdf = nextPdf;
+      pdfCache.set(appDocument.id, nextPdf);
       setPdf(nextPdf);
     };
 
@@ -81,7 +88,6 @@ export const PdfViewer = ({
 
     return () => {
       cancelled = true;
-      if (currentPdf) void currentPdf.destroy();
     };
   }, [appDocument]);
 
