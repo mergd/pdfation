@@ -1,160 +1,142 @@
-import { useState } from 'react'
-import { Dialog } from '@base-ui-components/react/dialog'
-import { ArrowLeft, ArrowRight, Sparkle, X } from '@phosphor-icons/react'
+import { useState } from "react";
+import { Dialog } from "@base-ui-components/react/dialog";
+import { ArrowLeft, ArrowRight, Sparkle, X } from "@phosphor-icons/react";
 
-import './onboarding-dialog.css'
+import "./onboarding-dialog.css";
 
-const ONBOARDING_SLIDES = [
+const SLIDES = [
   {
-    badge: 'Workspace',
-    title: 'Read, highlight, and turn passages into conversations',
-    description:
-      'Open a document to browse the pages, highlight text inline, and build context-rich chats without losing your place in the PDF.',
-    imageAlt: 'The pdfation workspace with the document viewer open.',
-    imageSrc: '/onboarding/workspace.png',
-    imagePosition: 'center center',
+    badge: "Workspace",
+    heading: "Read, highlight, and chat — all in one view",
+    body: "Open any PDF and start working. Highlight a passage to leave an inline annotation or pull it straight into a conversation.",
+    imageAlt: "The pdfation workspace with the document viewer open.",
+    imageSrc: "/onboarding/workspace.png",
+    imagePosition: "center top",
   },
   {
-    badge: 'Library',
-    title: 'Keep every PDF in one calm, visual place',
-    description:
-      'Your library is the home base. Upload your own files, keep the demo around for reference, and jump back into any document in a click.',
-    imageAlt: 'The pdfation library showing a PDF card and upload action.',
-    imageSrc: '/onboarding/library.png',
-    imagePosition: 'center top',
+    badge: "Library",
+    heading: "Your documents, always a click away",
+    body: "Upload files and organise them visually. Jump back into any document without searching through folders.",
+    imageAlt: "The pdfation library showing document cards.",
+    imageSrc: "/onboarding/library.png",
+    imagePosition: "center top",
   },
   {
-    badge: 'Flow',
-    title: 'Keep annotations, chats, and sharing in sync',
-    description:
-      'Highlights stay anchored to the document, chats stay organized in the sidebar, and share snapshots make it easy to hand work off.',
-    imageAlt: 'The pdfation workspace showing the live chat and thread history.',
-    imageSrc: '/onboarding/chat.png',
-    imagePosition: 'center center',
+    badge: "AI Chat",
+    heading: "Ask questions grounded in the actual text",
+    body: "Chat threads stay attached to the document context so every answer references the real content, not a hallucinated summary.",
+    imageAlt: "The pdfation chat sidebar with threaded conversations.",
+    imageSrc: "/onboarding/chat.png",
+    imagePosition: "center center",
   },
   {
-    badge: 'Share',
-    title: 'Send a complete snapshot, not just the file',
-    description:
-      'Share links bundle the PDF together with comments and chat history, so someone else can import the same working context into their own browser.',
-    imageAlt: 'The pdfation share dialog showing snapshot sharing options.',
-    imageSrc: '/onboarding/share.png',
-    imagePosition: 'center center',
+    badge: "Share",
+    heading: "Hand off the full picture, not just the file",
+    body: "Share links bundle the PDF with every comment and chat thread so collaborators land in the same working context.",
+    imageAlt: "The pdfation share dialog.",
+    imageSrc: "/onboarding/share.png",
+    imagePosition: "center center",
   },
-] as const
+] as const;
 
 interface OnboardingDialogProps {
-  open: boolean
-  onDismiss: () => void
+  open: boolean;
+  onDismiss: () => void;
 }
 
-export const OnboardingDialog = ({ open, onDismiss }: OnboardingDialogProps) => {
-  const [activeIndex, setActiveIndex] = useState(0)
+export const OnboardingDialog = ({
+  open,
+  onDismiss,
+}: OnboardingDialogProps) => {
+  const [activeIndex, setActiveIndex] = useState(0);
 
-  const slide = ONBOARDING_SLIDES[activeIndex]
-  const isFirstSlide = activeIndex === 0
-  const isLastSlide = activeIndex === ONBOARDING_SLIDES.length - 1
+  const slide = SLIDES[activeIndex];
+  const isFirst = activeIndex === 0;
+  const isLast = activeIndex === SLIDES.length - 1;
+
+  const goNext = () => {
+    if (isLast) {
+      onDismiss();
+    } else {
+      setActiveIndex((i) => i + 1);
+    }
+  };
+
+  const goPrev = () => {
+    if (!isFirst) setActiveIndex((i) => i - 1);
+  };
 
   return (
     <Dialog.Root
       open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          onDismiss()
-        }
+      onOpenChange={(next) => {
+        if (!next) onDismiss();
       }}
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="onboarding-backdrop" />
         <Dialog.Popup className="onboarding-dialog">
-          <header className="onboarding-dialog__header">
-            <div className="onboarding-dialog__eyebrow">
-              <Sparkle size={13} weight="fill" />
-              <span>Welcome to pdfation</span>
-            </div>
-            <Dialog.Close className="onboarding-dialog__close" aria-label="Dismiss onboarding">
-              <X size={14} weight="bold" />
-            </Dialog.Close>
-          </header>
+          <div className="onboarding__image-region">
+            <img
+              key={slide.imageSrc}
+              alt={slide.imageAlt}
+              className="onboarding__image"
+              src={slide.imageSrc}
+              style={{ objectPosition: slide.imagePosition }}
+            />
+            <div className="onboarding__image-fade" aria-hidden="true" />
 
-          <div className="onboarding-dialog__body">
-            <div className="onboarding-dialog__media">
-              <img
-                key={slide.imageSrc + slide.imagePosition}
-                alt={slide.imageAlt}
-                className="onboarding-dialog__image"
-                src={slide.imageSrc}
-                style={{ objectPosition: slide.imagePosition }}
-              />
-              <div className="onboarding-dialog__media-glow" aria-hidden="true" />
+            <div className="onboarding__step-pills">
+              {SLIDES.map((s, i) => (
+                <button
+                  key={s.badge}
+                  type="button"
+                  className={`onboarding__pill${i === activeIndex ? " onboarding__pill--active" : ""}`}
+                  onClick={() => setActiveIndex(i)}
+                  aria-label={s.badge}
+                >
+                  {s.badge}
+                </button>
+              ))}
             </div>
+          </div>
 
-            <div className="onboarding-dialog__copy">
-              <span className="badge badge-accent">{slide.badge}</span>
-              <Dialog.Title className="onboarding-dialog__title">
-                What is pdfation?
+          <div className="onboarding__content">
+            <div className="onboarding__text">
+              <Dialog.Title className="onboarding__heading">
+                {slide.heading}
               </Dialog.Title>
-              <p className="onboarding-dialog__lede">
-                pdfation is a lightweight PDF workspace for reading, annotating, and chatting with
-                documents in one place.
-              </p>
-              <h2 className="onboarding-dialog__slide-title">{slide.title}</h2>
-              <p className="onboarding-dialog__slide-description">{slide.description}</p>
+              <p className="onboarding__body">{slide.body}</p>
+            </div>
 
-              <div className="onboarding-dialog__footer">
-                <div className="onboarding-dialog__pagination">
-                  <span className="onboarding-dialog__count">
-                    {activeIndex + 1} / {ONBOARDING_SLIDES.length}
-                  </span>
-                  <div className="onboarding-dialog__dots" aria-label="Onboarding slides">
-                    {ONBOARDING_SLIDES.map((item, index) => (
-                      <button
-                        key={item.title}
-                        type="button"
-                        className={`onboarding-dialog__dot${index === activeIndex ? ' onboarding-dialog__dot--active' : ''}`}
-                        aria-label={`Go to ${item.badge} slide`}
-                        aria-pressed={index === activeIndex}
-                        onClick={() => setActiveIndex(index)}
-                      />
-                    ))}
-                  </div>
-                </div>
+            <div className="onboarding__nav">
+              <span className="onboarding__counter">
+                {activeIndex + 1}&thinsp;/&thinsp;{SLIDES.length}
+              </span>
 
-                <div className="onboarding-dialog__actions">
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    onClick={() => {
-                      if (!isFirstSlide) {
-                        setActiveIndex((current) => current - 1)
-                      }
-                    }}
-                    disabled={isFirstSlide}
-                  >
-                    <ArrowLeft size={14} weight="bold" />
-                    Previous
-                  </button>
+              <div className="onboarding__nav-buttons">
+                <button
+                  type="button"
+                  className="btn btn-ghost onboarding__nav-btn"
+                  onClick={goPrev}
+                  disabled={isFirst}
+                >
+                  <ArrowLeft size={14} weight="bold" />
+                </button>
 
-                  {!isLastSlide ? (
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={() => setActiveIndex((current) => current + 1)}
-                    >
-                      Next
-                      <ArrowRight size={14} weight="bold" />
-                    </button>
-                  ) : (
-                    <button type="button" className="btn btn-primary" onClick={onDismiss}>
-                      Start exploring
-                    </button>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary onboarding__nav-btn onboarding__nav-btn--next"
+                  onClick={goNext}
+                >
+                  {isLast ? "Get started" : "Next"}
+                  {!isLast && <ArrowRight size={14} weight="bold" />}
+                </button>
               </div>
             </div>
           </div>
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>
-  )
-}
+  );
+};
