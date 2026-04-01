@@ -1,5 +1,6 @@
 import { extractDocumentFromFile } from './extract-document'
-import { saveDocument, getOrCreateGlobalThread, updateSettings, listAllDocuments } from '../storage/db'
+import { createDemoThreads } from './demo-seed'
+import { getOrCreateGlobalThread, listAllDocuments, saveDocument, saveThread, updateSettings } from '../storage/db'
 
 const DEMO_URL = '/demo.pdf'
 const DEMO_NAME = 'PDFation Demo Document.pdf'
@@ -19,6 +20,13 @@ export const loadDemoPdfIfNeeded = async () => {
   await saveDocument(document)
   const settings = await updateSettings({ activeDocumentId: document.id })
   const globalThread = await getOrCreateGlobalThread(document.id)
+  const seededThreads = createDemoThreads(document, settings, globalThread)
 
-  return { document, settings, globalThread }
+  for (const thread of seededThreads) {
+    await saveThread(thread)
+  }
+
+  const seededGlobalThread = seededThreads.find((thread) => thread.id === globalThread.id) ?? globalThread
+
+  return { document, settings, globalThread: seededGlobalThread }
 }

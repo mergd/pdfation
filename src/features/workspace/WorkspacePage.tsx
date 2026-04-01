@@ -372,6 +372,14 @@ export const WorkspacePage = () => {
     } else {
       setPopoverThreadId(newThread.id);
     }
+
+    await saveThread(newThread);
+    updateWorkspace((c) =>
+      c ? { ...c, threads: replaceThread(c.threads, newThread) } : c,
+    );
+    setDraftCommentThread((current) =>
+      current?.id === newThread.id ? null : current,
+    );
   };
 
   useEffect(() => {
@@ -569,18 +577,6 @@ export const WorkspacePage = () => {
   };
 
   const closePopover = () => {
-    if (popoverThread?.kind === "anchor" && popoverThread.messages.length === 0) {
-      if (draftCommentThread?.id === popoverThread.id) {
-        clearDraftCommentThread();
-      } else {
-        void deleteThread(popoverThread.id);
-        updateWorkspace((c) =>
-          c ? { ...c, threads: c.threads.filter((t) => t.id !== popoverThread.id) } : c,
-        );
-        if (activeThreadId === popoverThread.id) setActiveThreadId(null);
-      }
-    }
-
     setPopoverThreadId(null);
   };
 

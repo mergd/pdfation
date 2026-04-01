@@ -48,10 +48,7 @@ export const ChatThreadList = ({
   };
 
   const sorted = useMemo(
-    () =>
-      threads
-        .filter((t) => t.kind !== "anchor" || t.messages.length > 0)
-        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    () => [...threads].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     [threads],
   );
 
@@ -136,7 +133,7 @@ export const ChatThreadList = ({
           const msgCount = thread.messages.length;
           const isAnchor = thread.kind === "anchor";
           const isEditing = editingId === thread.id;
-          const anchorPage = thread.anchor?.pageNumber;
+          const lastActivityAt = lastMsg?.createdAt ?? thread.updatedAt;
 
           return (
             <button
@@ -213,9 +210,9 @@ export const ChatThreadList = ({
                 {msgCount > 0 && (
                   <span className="thread-list__item-count">{msgCount}</span>
                 )}
-                {lastMsg && (
+                {lastActivityAt && (
                   <time className="thread-list__item-time">
-                    {formatRelativeDate(lastMsg.createdAt)}
+                    {formatRelativeDate(lastActivityAt)}
                   </time>
                 )}
               </span>

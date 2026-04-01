@@ -11,8 +11,10 @@ import {
   saveDocument,
   updateSettings,
 } from '../../lib/storage/db'
+import { hasSeenOnboardingCookie, markOnboardingSeenCookie } from '../../lib/browser/onboarding-cookie'
 import { extractDocumentFromFile } from '../../lib/pdf/extract-document'
 import { loadDemoPdfIfNeeded } from '../../lib/pdf/load-demo'
+import { OnboardingDialog } from './OnboardingDialog'
 import { PdfThumbnail } from './PdfThumbnail'
 
 import './library.css'
@@ -27,6 +29,7 @@ export const LibraryPage = () => {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(() => hasSeenOnboardingCookie())
   const [dragging, setDragging] = useState(false)
   const [newDocId, setNewDocId] = useState<string | null>(null)
   const [transitioningId, setTransitioningId] = useState<string | null>(null)
@@ -49,10 +52,16 @@ export const LibraryPage = () => {
         threads: [result.globalThread],
       }))
     })
-  }, [bootstrap])
+  }, [bootstrap, queryClient])
 
   const documents = bootstrap?.documents ?? []
   const totalSize = documents.reduce((sum, d) => sum + d.blob.size, 0)
+  const onboardingOpen = !!bootstrap && !hasSeenOnboarding
+
+  const handleDismissOnboarding = useCallback(() => {
+    markOnboardingSeenCookie()
+    setHasSeenOnboarding(true)
+  }, [])
 
   const navigateToDoc = useCallback(
     (docId: string) => {
@@ -175,6 +184,8 @@ export const LibraryPage = () => {
       onDragOver={onDragOver}
       onDrop={onDrop}
     >
+      <OnboardingDialog open={onboardingOpen} onDismiss={handleDismissOnboarding} />
+
       <header className="library__header">
         <div>
           <h1 className="library__title">pdfation</h1>

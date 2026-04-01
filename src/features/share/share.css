@@ -105,9 +105,31 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-3);
   padding-right: 2rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel-inset);
+  color: var(--text);
   cursor: pointer;
   text-align: left;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.share-dialog__select:hover {
+  border-color: var(--border);
+}
+
+.share-dialog__select:focus-visible,
+.share-dialog__select[data-popup-open] {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--panel-solid);
+  box-shadow: 0 0 0 2px var(--accent-focus);
 }
 
 .share-dialog__select-chevron {
@@ -115,6 +137,14 @@
   right: var(--space-3);
   color: var(--muted);
   pointer-events: none;
+  transition:
+    color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.share-dialog__select[data-popup-open] .share-dialog__select-chevron {
+  color: var(--text);
+  transform: rotate(180deg);
 }
 
 .share-dialog__select-positioner {
@@ -124,8 +154,8 @@
 .share-dialog__select-popup {
   min-width: var(--anchor-width);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--panel-solid);
+  border: 1px solid var(--border-strong);
+  background: var(--panel-inset);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
 }

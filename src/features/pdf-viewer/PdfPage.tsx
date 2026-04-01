@@ -28,6 +28,7 @@ function findHighlightSpans(
   textSuffix: string,
 ): Range | null {
   const fullText = container.textContent ?? "";
+  const normalizedFullText = normalizeTextWithMap(fullText);
   const searchTargets = [
     {
       target: `${textPrefix}${selectedText}${textSuffix}`,
@@ -48,11 +49,36 @@ function findHighlightSpans(
   ].filter(({ target }) => target.length > 0);
 
   let matchIndex = -1;
+  let matchLength = selectedText.length;
 
   for (const { target, offset } of searchTargets) {
     const foundIndex = fullText.indexOf(target);
     if (foundIndex !== -1) {
       matchIndex = foundIndex + offset;
+      matchLength = selectedText.length;
+      break;
+    }
+  }
+
+  if (matchIndex === -1) {
+    for (const { target, offset } of searchTargets) {
+      const normalizedTarget = normalizeText(target);
+      const normalizedOffset = normalizeText(target.slice(0, offset)).length;
+      const normalizedSelectedText = normalizeText(selectedText);
+      const foundIndex = normalizedFullText.text.indexOf(normalizedTarget);
+      if (foundIndex === -1) continue;
+
+      const normalizedMatchIndex = foundIndex + normalizedOffset;
+      const rawStart = normalizedFullText.indices[normalizedMatchIndex];
+      const rawEndIndex =
+        normalizedFullText.indices[
+          normalizedMatchIndex + normalizedSelectedText.length - 1
+        ];
+
+      if (rawStart === undefined || rawEndIndex === undefined) continue;
+
+      matchIndex = rawStart;
+      matchLength = rawEndIndex - rawStart + 1;
       break;
     }
   }
@@ -75,9 +101,9 @@ function findHighlightSpans(
       startOffset = matchIndex - charCount;
     }
 
-    if (startNode && charCount + len >= matchIndex + selectedText.length) {
+    if (startNode && charCount + len >= matchIndex + matchLength) {
       endNode = node;
-      endOffset = matchIndex + selectedText.length - charCount;
+      endOffset = matchIndex + matchLength - charCount;
       break;
     }
 
@@ -90,6 +116,40 @@ function findHighlightSpans(
   range.setStart(startNode, startOffset);
   range.setEnd(endNode, endOffset);
   return range;
+}
+
+function normalizeText(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function normalizeTextWithMap(value: string) {
+  let normalized = "";
+  const indices: number[] = [];
+  let pendingWhitespace = false;
+  let pendingWhitespaceIndex = -1;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index];
+    if (/\s/.test(char)) {
+      if (!pendingWhitespace) {
+        pendingWhitespace = true;
+        pendingWhitespaceIndex = index;
+      }
+      continue;
+    }
+
+    if (pendingWhitespace && normalized.length > 0) {
+      normalized += " ";
+      indices.push(pendingWhitespaceIndex);
+    }
+
+    pendingWhitespace = false;
+    pendingWhitespaceIndex = -1;
+    normalized += char;
+    indices.push(index);
+  }
+
+  return { text: normalized, indices };
 }
 
 function getRangeOffsets(

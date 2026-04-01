@@ -3,6 +3,7 @@ import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type { AppDocument, AppSettings, AppThread } from '../../../shared/contracts'
 import { DEFAULT_OPENROUTER_MODEL } from '../../../shared/models'
 import { generateDisplayName } from '../name-generator'
+import { createDemoThreads, shouldSeedDemoThreads } from '../pdf/demo-seed'
 
 interface SettingsRecord {
   key: 'app'
@@ -246,8 +247,16 @@ export const getDocumentWorkspace = async (documentId: string): Promise<Document
 
   if (!document) return null
 
-  await getOrCreateGlobalThread(documentId)
-  const threads = await getThreadsByDocumentId(documentId)
+  const globalThread = await getOrCreateGlobalThread(documentId)
+  let threads = await getThreadsByDocumentId(documentId)
+
+  if (document.isDemo && shouldSeedDemoThreads(threads)) {
+    const seededThreads = createDemoThreads(document, settings, globalThread)
+    for (const thread of seededThreads) {
+      await saveThread(thread)
+    }
+    threads = await getThreadsByDocumentId(documentId)
+  }
 
   return { document, settings, threads }
 }
@@ -285,8 +294,16 @@ export const getAppBootstrap = async (): Promise<AppBootstrap> => {
     }
   }
 
-  await getOrCreateGlobalThread(activeDocument.id)
-  const threads = await getThreadsByDocumentId(activeDocument.id)
+  const globalThread = await getOrCreateGlobalThread(activeDocument.id)
+  let threads = await getThreadsByDocumentId(activeDocument.id)
+
+  if (activeDocument.isDemo && shouldSeedDemoThreads(threads)) {
+    const seededThreads = createDemoThreads(activeDocument, settings, globalThread)
+    for (const thread of seededThreads) {
+      await saveThread(thread)
+    }
+    threads = await getThreadsByDocumentId(activeDocument.id)
+  }
 
   return {
     activeDocument,
