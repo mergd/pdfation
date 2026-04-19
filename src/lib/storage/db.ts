@@ -4,6 +4,7 @@ import type { AppDocument, AppSettings, AppThread } from '../../../shared/contra
 import { DEFAULT_OPENROUTER_MODEL } from '../../../shared/models'
 import { generateDisplayName } from '../name-generator'
 import { createDemoThreads, shouldSeedDemoThreads } from '../pdf/demo-seed'
+import { notifySyncDirty } from '../sync/trigger'
 
 interface SettingsRecord {
   key: 'app'
@@ -95,6 +96,7 @@ export const updateSettings = async (partial: Partial<AppSettings>): Promise<App
 
   await database.put('settings', { key: 'app', value: next })
 
+  notifySyncDirty()
   return next
 }
 
@@ -102,6 +104,7 @@ export const saveDocument = async (document: AppDocument) => {
   const database = await getDatabase()
 
   await database.put('documents', document)
+  notifySyncDirty()
 }
 
 export const getDocument = async (documentId: string) => {
@@ -123,10 +126,30 @@ export const listAllDocuments = async () => {
   return database.getAll('documents')
 }
 
+export const listAllThreads = async () => {
+  const database = await getDatabase()
+
+  return database.getAll('threads')
+}
+
+export const setDocumentSyncEnabled = async (
+  documentId: string,
+  syncEnabled: boolean,
+): Promise<AppDocument | null> => {
+  const database = await getDatabase()
+  const doc = await database.get('documents', documentId)
+  if (!doc) return null
+  const next: AppDocument = { ...doc, syncEnabled }
+  await database.put('documents', next)
+  notifySyncDirty()
+  return next
+}
+
 export const saveThread = async (thread: AppThread) => {
   const database = await getDatabase()
 
   await database.put('threads', thread)
+  notifySyncDirty()
 }
 
 export const getThreadsByDocumentId = async (documentId: string) => {
@@ -161,6 +184,7 @@ export const deleteDocument = async (documentId: string): Promise<void> => {
   }
 
   await tx.done
+  notifySyncDirty()
 }
 
 export const getOrCreateGlobalThread = async (documentId: string): Promise<AppThread> => {
@@ -203,12 +227,14 @@ export const createChatThread = async (documentId: string): Promise<AppThread> =
 
   await database.put('threads', thread)
 
+  notifySyncDirty()
   return thread
 }
 
 export const deleteThread = async (threadId: string): Promise<void> => {
   const database = await getDatabase()
   await database.delete('threads', threadId)
+  notifySyncDirty()
 }
 
 export const deleteAllAnchorThreads = async (documentId: string): Promise<void> => {
@@ -223,6 +249,7 @@ export const deleteAllAnchorThreads = async (documentId: string): Promise<void> 
   }
 
   await tx.done
+  notifySyncDirty()
 }
 
 export const renameThread = async (threadId: string, title: string): Promise<AppThread | null> => {
@@ -232,6 +259,7 @@ export const renameThread = async (threadId: string, title: string): Promise<App
 
   const updated = { ...thread, title }
   await database.put('threads', updated)
+  notifySyncDirty()
   return updated
 }
 

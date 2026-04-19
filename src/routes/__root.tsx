@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import '../lib/polyfills'
 import '../index.css'
+import { SyncOrchestrator } from '../features/sync/SyncOrchestrator'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -49,6 +50,7 @@ function RootComponent() {
     <RootDocument>
       <QueryClientProvider client={queryClient}>
         <Outlet />
+        {typeof window !== 'undefined' ? <SyncOrchestrator /> : null}
         {import.meta.env.DEV ? <Agentation /> : null}
       </QueryClientProvider>
     </RootDocument>

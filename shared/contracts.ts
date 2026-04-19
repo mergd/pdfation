@@ -25,6 +25,7 @@ export interface AppDocument {
   chunks: DocumentChunk[]
   isDemo?: boolean
   hidden?: boolean
+  syncEnabled?: boolean
 }
 
 export interface ThreadAnchor {

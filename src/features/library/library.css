@@ -251,6 +251,42 @@
   color: #fff;
 }
 
+.library__card-sync {
+  position: absolute;
+  top: var(--space-2);
+  right: calc(var(--space-2) + 1.75rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transition:
+    opacity var(--transition-fast),
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.library__card:hover .library__card-sync,
+.library__card-sync--off,
+.library__card-sync:focus-visible {
+  opacity: 1;
+}
+
+.library__card-sync:hover {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.library__card-sync--off {
+  background: rgba(0, 0, 0, 0.55);
+  color: #fbbc04;
+}
+
 /* dropzone */
 
 .library--dragging::after {

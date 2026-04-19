@@ -4,6 +4,7 @@ import { Radio } from '@base-ui-components/react/radio'
 
 import type { AppSettings, ProviderMode } from '../../../shared/contracts'
 import { modelsForProvider } from '../../../shared/models'
+import { SyncSection } from '../sync/SyncSection'
 
 import './settings-panel.css'
 
@@ -175,6 +176,8 @@ export const SettingsDialog = ({
                 </div>
               </div>
             )}
+
+            <SyncSection settings={settings} />
           </div>
         </Dialog.Popup>
       </Dialog.Portal>

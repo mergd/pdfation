@@ -9,8 +9,10 @@ import {
   deleteDocument,
   getAppBootstrap,
   saveDocument,
+  setDocumentSyncEnabled,
   updateSettings,
 } from '../../lib/storage/db'
+import { CloudArrowUp, CloudSlash } from '@phosphor-icons/react'
 import { hasSeenOnboardingCookie, markOnboardingSeenCookie } from '../../lib/browser/onboarding-cookie'
 import { extractDocumentFromFile } from '../../lib/pdf/extract-document'
 import { loadDemoPdfIfNeeded } from '../../lib/pdf/load-demo'
@@ -114,6 +116,24 @@ export const LibraryPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['app-bootstrap'] })
       setConfirmingId(null)
+    },
+  })
+
+  const toggleSyncMutation = useMutation({
+    mutationFn: ({ id, syncEnabled }: { id: string; syncEnabled: boolean }) =>
+      setDocumentSyncEnabled(id, syncEnabled),
+    onSuccess: (updated) => {
+      if (!updated) return
+      queryClient.setQueryData<AppBootstrap | undefined>(['app-bootstrap'], (c) =>
+        c
+          ? {
+              ...c,
+              documents: c.documents.map((d) => (d.id === updated.id ? updated : d)),
+              activeDocument:
+                c.activeDocument?.id === updated.id ? updated : c.activeDocument,
+            }
+          : c,
+      )
     },
   })
 
@@ -240,6 +260,20 @@ export const LibraryPage = () => {
                         {doc.pageCount} pg &middot; {formatBytes(doc.blob.size)}
                       </span>
                     </div>
+                  </button>
+
+                  <button
+                    className={`library__card-sync ${doc.syncEnabled === false ? 'library__card-sync--off' : ''}`}
+                    onClick={() =>
+                      toggleSyncMutation.mutate({
+                        id: doc.id,
+                        syncEnabled: doc.syncEnabled === false,
+                      })
+                    }
+                    type="button"
+                    title={doc.syncEnabled === false ? 'Enable sync for this file' : 'Exclude from sync'}
+                  >
+                    {doc.syncEnabled === false ? <CloudSlash size={14} /> : <CloudArrowUp size={14} />}
                   </button>
 
                   <button

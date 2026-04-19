@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SyncTokenRouteImport } from './routes/sync.$token'
 import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as DocIdRouteImport } from './routes/doc.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SyncTokenRoute = SyncTokenRouteImport.update({
+  id: '/sync/$token',
+  path: '/sync/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShareTokenRoute = ShareTokenRouteImport.update({
@@ -33,30 +39,34 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/doc/$id': typeof DocIdRoute
   '/share/$token': typeof ShareTokenRoute
+  '/sync/$token': typeof SyncTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/doc/$id': typeof DocIdRoute
   '/share/$token': typeof ShareTokenRoute
+  '/sync/$token': typeof SyncTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/doc/$id': typeof DocIdRoute
   '/share/$token': typeof ShareTokenRoute
+  '/sync/$token': typeof SyncTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/doc/$id' | '/share/$token'
+  fullPaths: '/' | '/doc/$id' | '/share/$token' | '/sync/$token'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/doc/$id' | '/share/$token'
-  id: '__root__' | '/' | '/doc/$id' | '/share/$token'
+  to: '/' | '/doc/$id' | '/share/$token' | '/sync/$token'
+  id: '__root__' | '/' | '/doc/$id' | '/share/$token' | '/sync/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DocIdRoute: typeof DocIdRoute
   ShareTokenRoute: typeof ShareTokenRoute
+  SyncTokenRoute: typeof SyncTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sync/$token': {
+      id: '/sync/$token'
+      path: '/sync/$token'
+      fullPath: '/sync/$token'
+      preLoaderRoute: typeof SyncTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/share/$token': {
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DocIdRoute: DocIdRoute,
   ShareTokenRoute: ShareTokenRoute,
+  SyncTokenRoute: SyncTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
