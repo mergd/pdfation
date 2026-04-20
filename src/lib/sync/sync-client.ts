@@ -3,6 +3,7 @@ import {
   createSyncAccount,
   createSyncMagicLink,
   deleteSyncAccount,
+  previewSyncMagicLink,
   getSyncStatus,
   pullSyncBundle,
   pushSyncBundle,
@@ -21,6 +22,9 @@ export const requestMagicLink = (origin: string) =>
 
 export const redeemMagicLink = (token: string, deviceName: string) =>
   consumeSyncMagicLink({ data: { token, deviceName } })
+
+export const previewMagicLink = (token: string) =>
+  previewSyncMagicLink({ data: { token } })
 
 export const revokeSession = (sessionId: string) =>
   revokeSyncSession({ data: { sessionId } })

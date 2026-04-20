@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 
-import type { AppDocument } from '../../../shared/contracts'
+import type { AppDocument, AppSettings } from '../../../shared/contracts'
 import {
   type AppBootstrap,
   deleteDocument,
@@ -13,9 +13,11 @@ import {
   updateSettings,
 } from '../../lib/storage/db'
 import { CloudArrowUp, CloudSlash } from '@phosphor-icons/react'
+import { defaultModelForProvider } from '../../../shared/models'
 import { hasSeenOnboardingCookie, markOnboardingSeenCookie } from '../../lib/browser/onboarding-cookie'
 import { extractDocumentFromFile } from '../../lib/pdf/extract-document'
 import { loadDemoPdfIfNeeded } from '../../lib/pdf/load-demo'
+import { SettingsDialog } from '../settings/SettingsPanel'
 import { OnboardingDialog } from './OnboardingDialog'
 import { PdfThumbnail } from './PdfThumbnail'
 
@@ -119,6 +121,16 @@ export const LibraryPage = () => {
     },
   })
 
+  const persistSettings = useCallback(
+    async (partial: Partial<AppSettings>) => {
+      const next = await updateSettings(partial)
+      queryClient.setQueryData<AppBootstrap | undefined>(['app-bootstrap'], (c) =>
+        c ? { ...c, settings: next } : c,
+      )
+    },
+    [queryClient],
+  )
+
   const toggleSyncMutation = useMutation({
     mutationFn: ({ id, syncEnabled }: { id: string; syncEnabled: boolean }) =>
       setDocumentSyncEnabled(id, syncEnabled),
@@ -214,10 +226,27 @@ export const LibraryPage = () => {
             {documents.length > 0 && <> &middot; {formatBytes(totalSize)} stored</>}
           </p>
         </div>
-        <label className="btn btn-primary library__upload">
-          <input accept="application/pdf" onChange={handleUpload} type="file" />
-          {uploadMutation.isPending ? 'Importing…' : 'Upload PDF'}
-        </label>
+        <div className="library__header-actions">
+          {bootstrap?.settings ? (
+            <SettingsDialog
+              settings={bootstrap.settings}
+              onChangeUsername={(value) => persistSettings({ username: value })}
+              onChangeProviderMode={(mode) => {
+                const model = defaultModelForProvider(mode)
+                persistSettings({ providerMode: mode, model })
+              }}
+              onChangeModel={(model) => persistSettings({ model })}
+              onChangeOpenRouterKey={(value) =>
+                persistSettings({ byoOpenRouterKey: value })
+              }
+              onChangeOpenAiKey={(value) => persistSettings({ byoOpenAiKey: value })}
+            />
+          ) : null}
+          <label className="btn btn-primary library__upload">
+            <input accept="application/pdf" onChange={handleUpload} type="file" />
+            {uploadMutation.isPending ? 'Importing…' : 'Upload PDF'}
+          </label>
+        </div>
       </header>
 
       {documents.length === 0 ? (

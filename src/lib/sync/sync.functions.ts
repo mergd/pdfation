@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import {
   deleteCookie,
   getCookie,
+  getRequestHeader,
   setCookie,
   setResponseStatus,
 } from '@tanstack/react-start/server'
@@ -258,6 +259,53 @@ export const createSyncMagicLink = createServerFn({ method: 'POST' })
 
     const url = `${data.origin.replace(/\/$/, '')}/sync/${token}`
     return { token, url, expiresAt }
+  })
+
+export const previewSyncMagicLink = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ token: z.string().min(1).max(128) }))
+  .handler(async ({ data }) => {
+    ensureBindings()
+
+    const magic = await env.SHARES.get<SyncMagicLink>(magicKey(data.token), 'json')
+    if (!magic) {
+      setResponseStatus(404)
+      throw new Error('This sync link is not valid or has expired.')
+    }
+    if (magic.consumed) {
+      setResponseStatus(410)
+      throw new Error('This sync link has already been used.')
+    }
+    if (new Date(magic.expiresAt).getTime() <= Date.now()) {
+      setResponseStatus(410)
+      throw new Error('This sync link has expired.')
+    }
+
+    const account = await loadAccount(magic.accountId)
+    if (!account) {
+      setResponseStatus(404)
+      throw new Error('This sync account no longer exists.')
+    }
+
+    const bundle = await loadBundle(account.id)
+    const preview = bundle
+      ? {
+          byteSize: encoder.encode(JSON.stringify(bundle)).byteLength,
+          documentCount: bundle.documents.length,
+          threadCount: bundle.threads.length,
+          updatedAt: bundle.updatedAt,
+          updatedByDeviceName: bundle.updatedByDeviceName,
+        }
+      : null
+
+    const rawCity = getRequestHeader('cf-ipcity')
+    const city = rawCity ? decodeURIComponent(rawCity) : null
+    const country = getRequestHeader('cf-ipcountry') ?? null
+
+    return {
+      expiresAt: magic.expiresAt,
+      bundle: preview,
+      location: { city, country },
+    }
   })
 
 export const consumeSyncMagicLink = createServerFn({ method: 'POST' })
