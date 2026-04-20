@@ -12,7 +12,8 @@ import {
   setDocumentSyncEnabled,
   updateSettings,
 } from '../../lib/storage/db'
-import { CloudArrowUp, CloudSlash } from '@phosphor-icons/react'
+import { ChatCircleDots, CloudCheck, CloudSlash } from '@phosphor-icons/react'
+import { fetchSyncStatus } from '../../lib/sync/sync-client'
 import { defaultModelForProvider } from '../../../shared/models'
 import { hasSeenOnboardingCookie, markOnboardingSeenCookie } from '../../lib/browser/onboarding-cookie'
 import { extractDocumentFromFile } from '../../lib/pdf/extract-document'
@@ -44,6 +45,12 @@ export const LibraryPage = () => {
     queryFn: getAppBootstrap,
   })
 
+  const { data: syncStatus } = useQuery({
+    queryKey: ['sync-status'],
+    queryFn: fetchSyncStatus,
+    staleTime: 30_000,
+  })
+
   useEffect(() => {
     if (!bootstrap || bootstrap.documents.length > 0) return
 
@@ -61,6 +68,13 @@ export const LibraryPage = () => {
   const documents = bootstrap?.documents ?? []
   const totalSize = documents.reduce((sum, d) => sum + d.blob.size, 0)
   const onboardingOpen = !!bootstrap && !hasSeenOnboarding
+  const syncEnabled = !!syncStatus?.enabled
+
+  const chatCountByDoc = new Map<string, number>()
+  for (const thread of bootstrap?.threads ?? []) {
+    if (thread.messages.length === 0) continue
+    chatCountByDoc.set(thread.documentId, (chatCountByDoc.get(thread.documentId) ?? 0) + 1)
+  }
 
   const handleDismissOnboarding = useCallback(() => {
     markOnboardingSeenCookie()
@@ -269,6 +283,8 @@ export const LibraryPage = () => {
               const isConfirming = confirmingId === doc.id
               const isNew = newDocId === doc.id
               const isTransitioning = transitioningId === doc.id
+              const chatCount = chatCountByDoc.get(doc.id) ?? 0
+              const isBackedUp = doc.syncEnabled !== false
 
               return (
                 <div
@@ -291,19 +307,31 @@ export const LibraryPage = () => {
                     </div>
                   </button>
 
-                  <button
-                    className={`library__card-sync ${doc.syncEnabled === false ? 'library__card-sync--off' : ''}`}
-                    onClick={() =>
-                      toggleSyncMutation.mutate({
-                        id: doc.id,
-                        syncEnabled: doc.syncEnabled === false,
-                      })
-                    }
-                    type="button"
-                    title={doc.syncEnabled === false ? 'Enable sync for this file' : 'Exclude from sync'}
-                  >
-                    {doc.syncEnabled === false ? <CloudSlash size={14} /> : <CloudArrowUp size={14} />}
-                  </button>
+                  {chatCount > 0 ? (
+                    <span
+                      className="library__card-chats"
+                      title={`${chatCount} ${chatCount === 1 ? 'chat' : 'chats'}`}
+                    >
+                      <ChatCircleDots size={12} weight="fill" />
+                      {chatCount}
+                    </span>
+                  ) : null}
+
+                  {syncEnabled ? (
+                    <button
+                      className={`library__card-sync ${isBackedUp ? 'library__card-sync--on' : 'library__card-sync--off'}`}
+                      onClick={() =>
+                        toggleSyncMutation.mutate({
+                          id: doc.id,
+                          syncEnabled: !isBackedUp,
+                        })
+                      }
+                      type="button"
+                      title={isBackedUp ? 'Backed up to sync · click to exclude' : 'Not backed up · click to include'}
+                    >
+                      {isBackedUp ? <CloudCheck size={14} weight="fill" /> : <CloudSlash size={14} />}
+                    </button>
+                  ) : null}
 
                   <button
                     className={`library__card-delete ${isConfirming ? 'library__card-delete--confirm' : ''}`}
