@@ -302,24 +302,34 @@ export const LibraryPage = () => {
                     <div className="library__card-overlay">
                       <span className="library__card-name">{doc.name}</span>
                       <span className="library__card-meta">
-                        {doc.pageCount} pg &middot; {formatBytes(doc.blob.size)}
+                        <span>
+                          {doc.pageCount} pg &middot; {formatBytes(doc.blob.size)}
+                        </span>
+                        {chatCount > 0 ? (
+                          <span className="library__card-meta-item">
+                            <ChatCircleDots size={12} weight="fill" />
+                            {chatCount} {chatCount === 1 ? 'chat' : 'chats'}
+                          </span>
+                        ) : null}
+                        {syncEnabled ? (
+                          <span
+                            className={`library__card-meta-item ${isBackedUp ? 'library__card-meta-item--on' : 'library__card-meta-item--off'}`}
+                          >
+                            {isBackedUp ? (
+                              <CloudCheck size={12} weight="fill" />
+                            ) : (
+                              <CloudSlash size={12} />
+                            )}
+                            {isBackedUp ? 'Backed up' : 'Not synced'}
+                          </span>
+                        ) : null}
                       </span>
                     </div>
                   </button>
 
-                  {chatCount > 0 ? (
-                    <span
-                      className="library__card-chats"
-                      title={`${chatCount} ${chatCount === 1 ? 'chat' : 'chats'}`}
-                    >
-                      <ChatCircleDots size={12} weight="fill" />
-                      {chatCount}
-                    </span>
-                  ) : null}
-
                   {syncEnabled ? (
                     <button
-                      className={`library__card-sync ${isBackedUp ? 'library__card-sync--on' : 'library__card-sync--off'}`}
+                      className="library__card-sync-toggle"
                       onClick={() =>
                         toggleSyncMutation.mutate({
                           id: doc.id,
@@ -327,10 +337,9 @@ export const LibraryPage = () => {
                         })
                       }
                       type="button"
-                      title={isBackedUp ? 'Backed up to sync · click to exclude' : 'Not backed up · click to include'}
-                    >
-                      {isBackedUp ? <CloudCheck size={14} weight="fill" /> : <CloudSlash size={14} />}
-                    </button>
+                      aria-label={isBackedUp ? 'Exclude from sync' : 'Include in sync'}
+                      title={isBackedUp ? 'Exclude from sync' : 'Include in sync'}
+                    />
                   ) : null}
 
                   <button
