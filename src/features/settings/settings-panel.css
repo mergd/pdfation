@@ -96,10 +96,60 @@
   color: var(--text);
 }
 
+/* ─── Tabs ─── */
+
+.settings-dialog__tabs {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.settings-dialog__tab-list {
+  position: relative;
+  display: flex;
+  gap: var(--space-4);
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-dialog__tab {
+  position: relative;
+  padding: var(--space-2) 0 calc(var(--space-2) + 2px);
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.settings-dialog__tab:hover {
+  color: var(--text-secondary, var(--text));
+}
+
+.settings-dialog__tab[data-selected] {
+  color: var(--text);
+}
+
+.settings-dialog__tab-indicator {
+  position: absolute;
+  left: var(--tab-indicator-left, 0);
+  width: var(--tab-indicator-width, 0);
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: var(--radius-full);
+  transition:
+    left var(--transition-fast),
+    width var(--transition-fast);
+}
+
 /* ─── Body ─── */
 
 .settings-dialog__body {
-  padding: 0 var(--space-4) var(--space-4);
+  padding: var(--space-4);
   display: grid;
   gap: var(--space-4);
   overflow-y: auto;
@@ -248,4 +298,39 @@
   right: var(--space-3);
   pointer-events: none;
   color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .settings-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 100svh;
+    height: 100svh;
+    top: 0;
+    left: 0;
+    transform: none;
+    border-radius: 0;
+    border: none;
+    animation: settings-dialog-in-mobile 200ms ease;
+  }
+
+  @keyframes settings-dialog-in-mobile {
+    from {
+      opacity: 0;
+      transform: translateY(1.5rem);
+    }
+  }
+
+  .settings-dialog__header {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .settings-dialog__body {
+    padding: var(--space-4);
+    padding-bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0));
+  }
+
+  .settings-dialog__radio {
+    padding: var(--space-3);
+  }
 }

@@ -1,6 +1,7 @@
 import { Dialog } from '@base-ui-components/react/dialog'
 import { RadioGroup } from '@base-ui-components/react/radio-group'
 import { Radio } from '@base-ui-components/react/radio'
+import { Tabs } from '@base-ui-components/react/tabs'
 
 import type { AppSettings, ProviderMode } from '../../../shared/contracts'
 import { modelsForProvider } from '../../../shared/models'
@@ -54,11 +55,22 @@ export const SettingsDialog = ({
             </Dialog.Close>
           </header>
 
-          <div className="settings-dialog__body">
-            <div className="settings-dialog__field">
-              <label className="settings-dialog__label" htmlFor="username">
-                Display name
-              </label>
+          <Tabs.Root defaultValue="general" className="settings-dialog__tabs">
+            <Tabs.List className="settings-dialog__tab-list">
+              <Tabs.Tab value="general" className="settings-dialog__tab">
+                General
+              </Tabs.Tab>
+              <Tabs.Tab value="sync" className="settings-dialog__tab">
+                Sync
+              </Tabs.Tab>
+              <Tabs.Indicator className="settings-dialog__tab-indicator" />
+            </Tabs.List>
+
+            <Tabs.Panel value="general" className="settings-dialog__body">
+              <div className="settings-dialog__field">
+                <label className="settings-dialog__label" htmlFor="username">
+                  Display name
+                </label>
               <input
                 id="username"
                 className="settings-dialog__input"
@@ -177,8 +189,12 @@ export const SettingsDialog = ({
               </div>
             )}
 
-            <SyncSection settings={settings} />
-          </div>
+            </Tabs.Panel>
+
+            <Tabs.Panel value="sync" className="settings-dialog__body">
+              <SyncSection settings={settings} />
+            </Tabs.Panel>
+          </Tabs.Root>
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

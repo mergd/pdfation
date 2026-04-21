@@ -376,3 +376,34 @@
   justify-content: flex-end;
   padding-top: var(--space-2);
 }
+
+@media (max-width: 640px) {
+  .sync-link {
+    padding: var(--space-3);
+    align-content: start;
+    padding-top: var(--space-5);
+  }
+
+  .sync-link__card {
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+  }
+
+  .sync-section__row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .sync-section__device {
+    flex-wrap: wrap;
+  }
+
+  .sync-section__link-text {
+    word-break: break-all;
+  }
+
+  .sync-section__footer {
+    flex-wrap: wrap;
+  }
+}

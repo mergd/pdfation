@@ -319,10 +319,49 @@
   }
 }
 
+@media (hover: none) {
+  .library__card-delete,
+  .library__card-sync-toggle {
+    opacity: 1;
+  }
+
+  .library__card-sync-toggle {
+    outline: 1px solid rgba(255, 255, 255, 0.2);
+    outline-offset: -1px;
+  }
+
+  .library__card:hover {
+    transform: none;
+  }
+}
+
 @media (max-width: 600px) {
+  .library__header {
+    padding: var(--space-3);
+    gap: var(--space-2);
+  }
+
+  .library__title {
+    font-size: var(--text-lg);
+  }
+
+  .library__header-actions {
+    gap: var(--space-1);
+  }
+
+  .library__header-actions .btn {
+    height: 2.25rem;
+  }
+
   .library__grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     padding: var(--space-3);
     gap: var(--space-2);
+  }
+}
+
+@media (max-width: 380px) {
+  .library__grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

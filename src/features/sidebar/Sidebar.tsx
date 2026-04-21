@@ -48,6 +48,13 @@ export const Sidebar = ({
 }: SidebarProps) => {
   return (
     <aside className={`sidebar ${open ? 'sidebar--open' : ''}`}>
+      <button
+        type="button"
+        className="sidebar__backdrop"
+        aria-label="Close sidebar"
+        tabIndex={open ? 0 : -1}
+        onClick={onClose}
+      />
       <div className="sidebar__inner">
         <ChatThreadList
           threads={threads}

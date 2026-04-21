@@ -451,3 +451,28 @@
   background: var(--border);
   flex-shrink: 0;
 }
+
+@media (max-width: 640px) {
+  .pdf-viewer__header {
+    padding: var(--space-2) var(--space-3);
+    gap: var(--space-2);
+  }
+
+  .pdf-viewer__header h2 {
+    font-size: var(--text-xs);
+  }
+
+  .pdf-viewer__scroll {
+    padding: var(--space-3) var(--space-2) var(--space-4);
+    gap: var(--space-3);
+  }
+
+  .pdf-page-card {
+    gap: var(--space-1);
+  }
+
+  .selection-popover__action {
+    padding: var(--space-2);
+    font-size: var(--text-xs);
+  }
+}

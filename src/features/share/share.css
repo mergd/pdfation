@@ -311,11 +311,38 @@
 }
 
 @media (max-width: 640px) {
+  .share-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 100svh;
+    top: 0;
+    left: 0;
+    transform: none;
+    border-radius: 0;
+    border: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .share-dialog__body {
+    overflow-y: auto;
+    padding-bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0));
+  }
+
   .share-dialog__result-row {
     grid-template-columns: 1fr;
   }
 
   .share-page {
     padding: 1rem;
+  }
+
+  .share-page__hero {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .share-page__thumbnail {
+    width: 96px;
   }
 }
