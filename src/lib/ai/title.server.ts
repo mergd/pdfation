@@ -45,6 +45,9 @@ export async function generateThreadTitle(input: GenerateTitleInput): Promise<st
 
   const response = await client.chat.completions.create({
     model,
+    ...(model === 'gpt-6-luna' || model === 'gpt-6-sol' || model === 'openai/gpt-6-luna'
+      ? { reasoning_effort: 'none' as const }
+      : {}),
     max_tokens: 30,
     response_format: {
       type: 'json_schema',

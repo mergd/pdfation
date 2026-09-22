@@ -156,6 +156,9 @@ async function chatWithTools(
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const response = await client.chat.completions.create({
       model,
+      ...(model === 'gpt-6-luna' || model === 'gpt-6-sol' || model === 'openai/gpt-6-luna'
+        ? { reasoning_effort: 'none' as const }
+        : {}),
       messages,
       tools: hasPages ? TOOLS : undefined,
       max_tokens: MAX_OUTPUT_TOKENS,
@@ -183,6 +186,9 @@ async function chatWithTools(
 
   const final = await client.chat.completions.create({
     model,
+    ...(model === 'gpt-6-luna' || model === 'gpt-6-sol' || model === 'openai/gpt-6-luna'
+      ? { reasoning_effort: 'none' as const }
+      : {}),
     messages,
     max_tokens: MAX_OUTPUT_TOKENS,
   })
